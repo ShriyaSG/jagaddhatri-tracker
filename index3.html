@@ -1,0 +1,1549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jagaddhatri Puja Finance Tracker</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom styles for Inter font and general aesthetics */
+        :root {
+            --primary: #f87171; /* red-400 */
+            --secondary: #3b82f6; /* blue-500 */
+            --background: #f8f8f8;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            line-height: 1.6;
+        }
+        .card {
+            background-color: var(--card-bg);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem; /* rounded-xl */
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        .pulse-loader {
+            border-top-color: var(--primary);
+            -webkit-animation: spinner 1.5s linear infinite;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            to { transform: rotate(360deg); }
+        }
+        /* Style for the message box/modal */
+        .modal {
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Modal for Messages/Confirmation (Replaces alert() and confirm()) -->
+    <div id="message-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center opacity-0 invisible">
+        <div class="card p-6 w-11/12 max-w-sm">
+            <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Alert</h3>
+            <p id="modal-message" class="mb-6 text-gray-600">This is a message.</p>
+            <div class="flex justify-end space-x-3">
+                <button id="modal-cancel" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition duration-150 hidden">Cancel</button>
+                <button id="modal-confirm" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-700 transition duration-150">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login/Access Screen -->
+    <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+        <div class="card p-8 w-full max-w-md text-center">
+            <h1 class="text-3xl font-extrabold text-red-600 mb-4">Puja Finance Tracker</h1>
+            <p class="text-gray-600 mb-6">Enter the family passcode to access the tracker.</p>
+            <input type="password" id="passcode-input" class="w-full p-3 border border-gray-300 rounded-lg mb-4 focus:ring-red-500 focus:border-red-500" placeholder="Family Passcode">
+            <button id="login-button" class="w-full py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150">
+                Enter Tracker
+            </button>
+            <div id="login-error" class="text-red-500 text-sm mt-3 hidden">Invalid passcode. Please try again.</div>
+        </div>
+    </div>
+
+    <!-- Main Application Screen -->
+    <div id="main-app" class="hidden min-h-screen flex flex-col">
+        <!-- Header and Tabs -->
+        <header class="bg-white shadow-md sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+                <h1 class="text-xl font-bold text-red-600">J-Puja Tracker</h1>
+                <div class="flex items-center space-x-2 text-sm text-gray-500">
+                    <span class="font-medium text-gray-700">User ID:</span>
+                    <span id="display-user-id" class="text-xs bg-gray-100 p-1 rounded-md cursor-help" title="Your unique ID for data segregation">Loading...</span>
+                </div>
+            </div>
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-4 border-t border-gray-200">
+                <button data-tab="dashboard" class="tab-button px-3 py-3 sm:px-5 text-gray-500 active">Dashboard</button>
+                <button data-tab="budget-planner" class="tab-button px-3 py-3 sm:px-5 text-gray-500">Budget Planner</button>
+                <button data-tab="add-transaction" class="tab-button px-3 py-3 sm:px-5 text-gray-500">Add Transaction</button>
+                <button data-tab="transaction-history" class="tab-button px-3 py-3 sm:px-5 text-gray-500">History</button>
+            </nav>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="flex-grow max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 w-full">
+            <!-- Dashboard Tab -->
+            <div id="tab-dashboard" class="tab-content">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Overview Dashboard</h2>
+                <div id="dashboard-loader" class="text-center p-8 hidden">
+                    <div class="pulse-loader w-8 h-8 border-4 rounded-full mx-auto mb-2"></div>
+                    <p class="text-gray-500">Calculating Finances...</p>
+                </div>
+                <div id="dashboard-content" class="space-y-8">
+                    <!-- Summary Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="card p-5 bg-red-50 border-l-4 border-red-500">
+                            <p class="text-sm font-medium text-gray-500">Total Spent</p>
+                            <p id="total-spent" class="mt-1 text-3xl font-semibold text-red-600">₹0</p>
+                        </div>
+                        <div class="card p-5 bg-green-50 border-l-4 border-green-500">
+                            <p class="text-sm font-medium text-gray-500">Total Inflow</p>
+                            <p id="total-inflow" class="mt-1 text-3xl font-semibold text-green-600">₹0</p>
+                        </div>
+                        <div class="card p-5 bg-blue-50 border-l-4 border-blue-500">
+                            <p class="text-sm font-medium text-gray-500">Net Balance</p>
+                            <p id="net-balance" class="mt-1 text-3xl font-semibold text-blue-600">₹0</p>
+                        </div>
+                    </div>
+
+                    <!-- Budget vs Actual Chart/List -->
+                    <div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Budget Progress by Category</h3>
+                        <div class="card p-4">
+                            <div id="budget-progress-list" class="space-y-3">
+                                <p class="text-gray-500">Set a budget in the **Budget Planner** tab to see the progress here!</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Top 5 Categories -->
+                    <div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Top Spending Categories (Count)</h3>
+                        <div class="card p-4">
+                            <div id="top-categories-list" class="space-y-2">
+                                <p class="text-gray-500">No transactions recorded yet.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Planner Tab -->
+            <div id="tab-budget-planner" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Budget Planner</h2>
+                <div class="card p-6">
+                    <p class="text-gray-600 mb-4">Set the maximum spending limit for each expense category. Leave blank or 0 for no limit.</p>
+                    <div id="budget-form-container" class="space-y-4">
+                        <!-- Budget inputs will be generated here -->
+                        <div id="budget-loader" class="text-center p-8">
+                            <div class="pulse-loader w-6 h-6 border-4 rounded-full mx-auto mb-2"></div>
+                            <p class="text-gray-500 text-sm">Loading categories...</p>
+                        </div>
+                    </div>
+                    <button id="save-budget-btn" class="mt-6 w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition duration-150 flex items-center justify-center">
+                        <span id="budget-button-text">Save Budgets</span>
+                        <div id="budget-save-spinner" class="pulse-loader w-5 h-5 border-4 rounded-full ml-3 hidden"></div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Add Transaction Tab -->
+            <div id="tab-add-transaction" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6" id="transaction-header">Add New Transaction</h2>
+                <div class="card p-6">
+                    <form id="transaction-form" class="space-y-4">
+                        <!-- Hidden field for transaction ID (for modification) -->
+                        <input type="hidden" id="transaction-id" value="">
+
+                        <!-- Transaction Type (INFLOW/OUTFLOW) -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center space-x-2 cursor-pointer p-3 border rounded-lg flex-grow hover:bg-gray-50 has-[:checked]:border-red-500">
+                                    <input type="radio" name="transactionType" value="INFLOW" required class="form-radio text-red-600" checked>
+                                    <span class="font-medium text-green-600">INFLOW (Money In)</span>
+                                </label>
+                                <label class="flex items-center space-x-2 cursor-pointer p-3 border rounded-lg flex-grow hover:bg-gray-50 has-[:checked]:border-red-500">
+                                    <input type="radio" name="transactionType" value="OUTFLOW" required class="form-radio text-red-600">
+                                    <span class="font-medium text-red-600">OUTFLOW (Money Out)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Date and Time -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="transaction-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input type="date" id="transaction-date" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                            </div>
+                            <div>
+                                <label for="transaction-time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                                <input type="time" id="transaction-time" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                            </div>
+                        </div>
+
+                        <!-- Transaction Mode (Dynamic based on Type) -->
+                        <div>
+                            <label for="transaction-mode" class="block text-sm font-medium text-gray-700 mb-1" id="mode-label">Inflow Bank</label>
+                            <select id="transaction-mode" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></select>
+                        </div>
+
+                        <!-- OUTFLOW Specific Fields -->
+                        <div id="outflow-fields" class="space-y-4 hidden">
+                            <!-- Category -->
+                            <div>
+                                <label for="transaction-category" class="block text-sm font-medium text-gray-700 mb-1">Expense Category</label>
+                                <select id="transaction-category" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></select>
+                            </div>
+
+                            <!-- Payment Status (Full/Advance/Due) -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                                <div class="flex space-x-2 overflow-x-auto pb-1">
+                                    <label class="flex-shrink-0 flex items-center space-x-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 has-[:checked]:border-red-500">
+                                        <input type="radio" name="paymentStatus" value="FULL" class="form-radio text-red-600" checked>
+                                        <span>Full Payment</span>
+                                    </label>
+                                    <label class="flex-shrink-0 flex items-center space-x-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 has-[:checked]:border-red-500">
+                                        <input type="radio" name="paymentStatus" value="ADVANCE" class="form-radio text-red-600">
+                                        <span>Advance Payment</span>
+                                    </label>
+                                    <label class="flex-shrink-0 flex items-center space-x-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 has-[:checked]:border-red-500">
+                                        <input type="radio" name="paymentStatus" value="DUE" class="form-radio text-red-600">
+                                        <span>Clear Due</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Advance/Due Conditional Fields -->
+                            <div id="advance-due-fields" class="card p-4 bg-yellow-50 border border-yellow-200 hidden">
+                                <!-- Due Clearance Section -->
+                                <div id="due-clearance-section" class="hidden">
+                                    <label for="open-advance-selector" class="block text-sm font-medium text-gray-700 mb-1">Select Open Advance Transaction</label>
+                                    <select id="open-advance-selector" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 mb-3"></select>
+                                    <div id="selected-due-summary" class="text-sm text-gray-600 p-2 bg-yellow-100 rounded-lg hidden"></div>
+                                </div>
+
+                                <!-- Advance Payment Fields -->
+                                <div id="advance-fields" class="hidden space-y-3">
+                                    <div>
+                                        <label for="expected-amount" class="block text-sm font-medium text-gray-700 mb-1">Full Expected Amount (Optional)</label>
+                                        <input type="number" id="expected-amount" placeholder="e.g., 10000 (Estimate)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                                    </div>
+                                    <!-- Advance Paid Amount is captured in the main 'Amount' field -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Amount -->
+                        <div>
+                            <label for="transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (INR)</label>
+                            <input type="number" id="transaction-amount" required min="0.01" step="0.01" placeholder="e.g., 500.50" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                        </div>
+
+                        <!-- Narration/Description -->
+                        <div>
+                            <label for="transaction-narration" class="block text-sm font-medium text-gray-700 mb-1">Narration (Optional)</label>
+                            <textarea id="transaction-narration" rows="2" placeholder="Brief description of the transaction..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></textarea>
+                        </div>
+
+                        <!-- File Uploads -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Upload Bill/Receipts (Max 7 files)</label>
+                            <!-- Note: The 'multiple' attribute ensures multiple files can be selected in one go. We use JS to accumulate files from repeated selections. -->
+                            <input type="file" id="bill-upload" multiple accept="image/*, application/pdf" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                            <p class="text-xs text-gray-500 mt-1">**IMPORTANT:** Max 7 files. Use the input above to **select all files at once, or repeatedly** to accumulate them here. Max 200KB per file.</p>
+                            <div id="file-preview-list" class="mt-2 space-y-2">
+                                <!-- Existing and newly selected files list -->
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" id="submit-transaction-btn" class="w-full py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 flex items-center justify-center">
+                            <span id="transaction-button-text">Record Transaction</span>
+                            <div id="transaction-spinner" class="pulse-loader w-5 h-5 border-4 rounded-full ml-3 hidden"></div>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Transaction History Tab -->
+            <div id="tab-transaction-history" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6">Transaction History</h2>
+                <div id="history-loader" class="text-center p-8">
+                    <div class="pulse-loader w-8 h-8 border-4 rounded-full mx-auto mb-2"></div>
+                    <p class="text-gray-500">Fetching history from database...</p>
+                </div>
+                <div id="transaction-list" class="space-y-4">
+                    <!-- Transactions will be displayed here -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import {
+            getFirestore, doc, setDoc, onSnapshot, collection, query,
+            addDoc, deleteDoc, updateDoc, getDocs, getDoc, where,
+            writeBatch, runTransaction
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase logging level (useful for debugging in the console)
+        setLogLevel('Debug');
+
+        // --- GLOBAL CONFIGURATION & SETUP ---
+
+        // Firebase Global Variables (Provided by Canvas are ignored for portability)
+        // You MUST configure your Firebase Project and paste the object below.
+        
+        // --- START FIREBASE CONFIGURATION (Paste your details here) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyBw3ae2AHnVRPi4KkcF6K257HYC8q_ro0A",
+            authDomain: "jpuja-tracker.firebaseapp.com",
+            projectId: "jpuja-tracker",
+            storageBucket: "jpuja-tracker.firebasestorage.app",
+            messagingSenderId: "740381845015",
+            appId: "1:740381845015:web:f3f876d5ad0b1d53d11e52",
+            measurementId: "G-HT7LB7BQFH"
+        };
+        const appId = firebaseConfig.projectId; // Use projectId as a stable appId
+        // The __initial_auth_token is only available in the Canvas environment.
+        const initialAuthToken = null; 
+        // --- END FIREBASE CONFIGURATION ---
+
+
+        let db, auth, app, userId = null;
+        let allTransactions = []; // Holds all transaction data for history/dashboard
+        let allBudgets = {}; // Holds budget data keyed by category
+        let openAdvanceTransactions = []; // Open transactions for Due clearance
+        
+        // Holds files selected in the form, including existing ones during modification
+        let pendingFiles = []; 
+
+        // FIX 1: New Passcode
+        const FAMILY_PASSCODE = "jpuja2025!"; 
+
+        // Transaction Modes
+        const INFLOW_MODES = ['HDFC', 'IDFC', 'Sarmistha']; 
+        const OUTFLOW_MODES = ['Cash', 'UPI HDFC', 'UPI IDFC']; 
+
+        const EXPENSE_CATEGORIES = [
+            'Bhog- Sweets', 'Bhog- Grocery', 'Bhog- Maru', 'Bhog- Fruits',
+            'Food- Sweets', 'Food- Grocery', 'Food- Vegetables', 'Food- Kajol/Cook',
+            'Dashakarma- Purohit', 'Dashakarma Others',
+            'Puja- Pratima', 'Puja- Dhaki', 'Puja- Purohit', 'Puja- Purohit Assistant', 'Puja- Flowers',
+            'Dress Material- Puja', 'Dress Material- Others',
+            'Travel- Local Conveyance', 'Travel- Car',
+            'Plates, cups etc', 'Lights', 'Pandal', 'House cleaning', 'House Cleaning Shibu+wife', 'House repairs', 'Gas', 'Water', 'Other'
+        ].sort();
+
+        // DOM Element references
+        const $ = (id) => document.getElementById(id);
+        const modal = $('message-modal');
+        const modalTitle = $('modal-title');
+        const modalMessage = $('modal-message');
+        const modalConfirm = $('modal-confirm');
+        const modalCancel = $('modal-cancel');
+
+        // --- UTILITY FUNCTIONS ---
+
+        /**
+         * Custom Modal/Message Box (to replace alert/confirm)
+         * @param {string} title
+         * @param {string} message
+         * @param {boolean} isConfirm
+         * @returns {Promise<boolean>}
+         */
+        const showModal = (title, message, isConfirm = false) => {
+            return new Promise(resolve => {
+                modalTitle.textContent = title;
+                modalMessage.innerHTML = message;
+
+                modalCancel.onclick = () => {
+                    modal.classList.add('opacity-0', 'invisible');
+                    resolve(false);
+                };
+
+                modalConfirm.onclick = () => {
+                    modal.classList.add('opacity-0', 'invisible');
+                    resolve(true);
+                };
+
+                if (isConfirm) {
+                    modalCancel.classList.remove('hidden');
+                    modalConfirm.textContent = 'Yes, Proceed';
+                    modalConfirm.classList.remove('bg-red-500', 'hover:bg-red-600');
+                    modalConfirm.classList.add('bg-blue-500', 'hover:bg-blue-600');
+                } else {
+                    modalCancel.classList.add('hidden');
+                    modalConfirm.textContent = 'OK';
+                    modalConfirm.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                    modalConfirm.classList.add('bg-red-500', 'hover:bg-red-600');
+                }
+
+                // Show the modal
+                modal.classList.remove('opacity-0', 'invisible');
+            });
+        };
+
+        /**
+         * Converts File to Base64 String
+         * @param {File} file
+         * @returns {Promise<{name: string, data: string}>}
+         */
+        const fileToBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                // Client-side enforcement: Max 200KB per file to avoid 1MB document limit
+                const MAX_FILE_SIZE_BYTES = 200 * 1024;
+                if (file.size > MAX_FILE_SIZE_BYTES) {
+                    reject(new Error(`File "${file.name}" is too large (${(file.size / 1024).toFixed(2)} KB). Max allowed size is 200 KB.`));
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => resolve({
+                    name: file.name,
+                    data: reader.result // Base64 string
+                });
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        };
+
+        /**
+         * Converts date and time inputs into a single Date object (for sorting)
+         * @param {string} dateStr - 'YYYY-MM-DD'
+         * @param {string} timeStr - 'HH:MM'
+         * @returns {Date}
+         */
+        const getDateTime = (dateStr, timeStr) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const [hour, minute] = timeStr.split(':').map(Number);
+            // Month is 0-indexed in Date constructor
+            return new Date(year, month - 1, day, hour, minute);
+        }
+
+        // --- FIREBASE INITIALIZATION AND AUTH ---
+
+        const initFirebase = async () => {
+            try {
+                if (!firebaseConfig.projectId || firebaseConfig.apiKey.includes('PLACEHOLDER')) {
+                     throw new Error("Firebase configuration placeholders not replaced. Please update the firebaseConfig object in the code.");
+                }
+
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                // Authenticate the user
+                // If running outside the Canvas, initialAuthToken is null, and it signs in anonymously
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        $('display-user-id').textContent = userId;
+                        console.log("Firebase initialized. User ID:", userId);
+
+                        // Start listening to data once authenticated
+                        setupFirestoreListeners();
+                        initTransactionForm();
+                        renderBudgetInputs(); // Render inputs once categories are defined
+                    } else {
+                        // Fallback: If anonymous sign-in failed (shouldn't happen with test mode rules)
+                        userId = crypto.randomUUID();
+                        $('display-user-id').textContent = userId;
+                        console.warn("Signed in anonymously failed. Using UUID as fallback ID.");
+
+                        setupFirestoreListeners();
+                        initTransactionForm();
+                        renderBudgetInputs();
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                await showModal("Setup Error", `Could not initialize the database. Details: ${error.message}`, false);
+            }
+        };
+
+        // --- FIRESTORE COLLECTION PATHS ---
+
+        const getTransactionCollectionRef = () => {
+            if (!db || !userId) throw new Error("DB or User ID not initialized.");
+            // Private Data path: /artifacts/{appId}/users/{userId}/transactions
+            return collection(db, `artifacts/${appId}/users/${userId}/transactions`);
+        };
+
+        const getBudgetCollectionRef = () => {
+            if (!db || !userId) throw new Error("DB or User ID not initialized.");
+            // Private Data path: /artifacts/{appId}/users/{userId}/budgets
+            return collection(db, `artifacts/${appId}/users/${userId}/budgets`);
+        };
+
+        // --- DATA LISTENERS (REAL-TIME UPDATES) ---
+
+        const setupFirestoreListeners = () => {
+            // 1. Transaction Listener
+            onSnapshot(getTransactionCollectionRef(), (snapshot) => {
+                console.log("Transactions updated.");
+                allTransactions = snapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                    // Ensure date is a Date object for correct sorting
+                    dateTime: getDateTime(doc.data().date, doc.data().time || '00:00')
+                }));
+                // Sort by date/time descending
+                allTransactions.sort((a, b) => b.dateTime - a.dateTime);
+
+                // Update derived lists
+                openAdvanceTransactions = allTransactions.filter(t =>
+                    t.type === 'OUTFLOW' && t.status === 'ADVANCE' && !t.isClosed
+                );
+
+                // Re-render all views that depend on transactions
+                renderDashboard();
+                renderTransactionHistory();
+                updateDueSelector();
+            }, (error) => {
+                console.log("Error fetching transactions:", error);
+                // Only show modal for actual authentication/permission errors
+                if (error.code !== 'permission-denied') {
+                     showModal("Data Error", `Failed to load transactions: ${error.message}`);
+                }
+            });
+
+            // 2. Budget Listener
+            onSnapshot(getBudgetCollectionRef(), (snapshot) => {
+                console.log("Budgets updated.");
+                allBudgets = {};
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    allBudgets[data.category] = {
+                        limit: data.limit,
+                        docId: doc.id
+                    };
+                });
+                renderDashboard(); // Dashboard depends on budgets
+                renderBudgetInputs(); // Update the planner with loaded data
+            }, (error) => {
+                console.log("Error fetching budgets:", error);
+                if (error.code !== 'permission-denied') {
+                    showModal("Data Error", `Failed to load budgets: ${error.message}`);
+                }
+            });
+        };
+
+        // --- DASHBOARD LOGIC ---
+
+        const renderDashboard = () => {
+            $('dashboard-loader').classList.add('hidden');
+            const totalSpent = allTransactions
+                .filter(t => t.type === 'OUTFLOW')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const totalInflow = allTransactions
+                .filter(t => t.type === 'INFLOW')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const netBalance = totalInflow - totalSpent;
+
+            // Update Summary Cards
+            $('total-spent').textContent = `₹${totalSpent.toLocaleString('en-IN')}`;
+            $('total-inflow').textContent = `₹${totalInflow.toLocaleString('en-IN')}`;
+            $('net-balance').textContent = `₹${netBalance.toLocaleString('en-IN')}`;
+
+            // Determine balance color
+            $('net-balance').closest('.card').classList.remove('bg-red-50', 'bg-green-50', 'border-blue-500', 'border-red-500', 'border-green-500');
+            $('net-balance').classList.remove('text-blue-600', 'text-red-600', 'text-green-600');
+            
+            if (netBalance >= 0) {
+                $('net-balance').closest('.card').classList.add('bg-green-50', 'border-green-500');
+                $('net-balance').classList.add('text-green-600');
+            } else {
+                 $('net-balance').closest('.card').classList.add('bg-red-50', 'border-red-500');
+                $('net-balance').classList.add('text-red-600');
+            }
+
+
+            // Calculate Spending by Category
+            const spendingByCategory = allTransactions
+                .filter(t => t.type === 'OUTFLOW' && t.category)
+                .reduce((acc, t) => {
+                    acc[t.category] = (acc[t.category] || 0) + t.amount;
+                    return acc;
+                }, {});
+
+            // Calculate Transaction Count by Category
+            const countByCategory = allTransactions
+                .filter(t => t.type === 'OUTFLOW' && t.category)
+                .reduce((acc, t) => {
+                    acc[t.category] = (acc[t.category] || 0) + 1;
+                    return acc;
+                }, {});
+
+            // Render Budget Progress List
+            let budgetHtml = '';
+            let hasBudget = false;
+
+            EXPENSE_CATEGORIES.forEach(category => {
+                const limit = allBudgets[category]?.limit || 0;
+                const spent = spendingByCategory[category] || 0;
+
+                if (limit > 0) {
+                    hasBudget = true;
+                    const progress = limit > 0 ? Math.min(100, (spent / limit) * 100) : 0;
+                    const overBudget = spent > limit;
+                    const remaining = limit - spent;
+                    const color = overBudget ? 'bg-red-500' : 'bg-blue-500';
+
+                    budgetHtml += `
+                        <div class="p-3 border rounded-lg">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="font-medium text-gray-700">${category}</span>
+                                <span class="text-sm font-semibold ${overBudget ? 'text-red-600' : 'text-blue-600'}">
+                                    ₹${spent.toLocaleString('en-IN')} / ₹${limit.toLocaleString('en-IN')}
+                                </span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="${color} h-2.5 rounded-full" style="width: ${progress}%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">
+                                ${overBudget ? `₹${(spent - limit).toLocaleString('en-IN')} OVER BUDGET` : `₹${remaining.toLocaleString('en-IN')} Remaining`}
+                            </p>
+                        </div>
+                    `;
+                }
+            });
+
+            const budgetListElement = $('budget-progress-list');
+            if (hasBudget) {
+                budgetListElement.innerHTML = budgetHtml;
+            } else {
+                budgetListElement.innerHTML = '<p class="text-gray-500 p-2">No budgets set. Set limits in the **Budget Planner** tab!</p>';
+            }
+
+            // Render Top Categories List (by count)
+            const topCategoriesArray = Object.entries(countByCategory)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 5);
+
+            let topCategoriesHtml = '';
+            if (topCategoriesArray.length > 0) {
+                topCategoriesArray.forEach(([category, count]) => {
+                    const spent = spendingByCategory[category].toLocaleString('en-IN');
+                    topCategoriesHtml += `
+                        <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
+                            <span class="font-medium text-gray-700">${category}</span>
+                            <span class="text-sm text-gray-600">${count} transactions (₹${spent})</span>
+                        </div>
+                    `;
+                });
+            } else {
+                 topCategoriesHtml = '<p class="text-gray-500 p-2">No outflow transactions recorded yet.</p>';
+            }
+            $('top-categories-list').innerHTML = topCategoriesHtml;
+        };
+
+        // --- BUDGET PLANNER LOGIC ---
+
+        const renderBudgetInputs = () => {
+            const container = $('budget-form-container');
+            container.innerHTML = ''; // Clear loader and previous inputs
+
+            EXPENSE_CATEGORIES.forEach(category => {
+                const currentLimit = allBudgets[category]?.limit || '';
+                const inputId = `budget-input-${category.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-2 gap-4 items-center';
+                div.innerHTML = `
+                    <label for="${inputId}" class="block text-sm font-medium text-gray-700">${category}</label>
+                    <input type="number" id="${inputId}" data-category="${category}" value="${currentLimit}" min="0" step="1"
+                            placeholder="Limit (INR)" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-right">
+                `;
+                container.appendChild(div);
+            });
+        };
+
+        const handleSaveBudgets = async () => {
+            const button = $('save-budget-btn');
+            const buttonText = $('budget-button-text');
+            const spinner = $('budget-save-spinner');
+
+            buttonText.textContent = 'Saving...';
+            spinner.classList.remove('hidden');
+            button.disabled = true;
+
+            const inputs = $('budget-form-container').querySelectorAll('input[type="number"]');
+            const budgetData = {};
+
+            inputs.forEach(input => {
+                const category = input.dataset.category;
+                const limit = parseFloat(input.value) || 0;
+                budgetData[category] = limit;
+            });
+
+            try {
+                const batch = writeBatch(db);
+                const budgetColRef = getBudgetCollectionRef();
+
+                // 1. Update/Add Budgets
+                EXPENSE_CATEGORIES.forEach(category => {
+                    const limit = budgetData[category];
+                    const existingDocId = allBudgets[category]?.docId;
+
+                    if (limit > 0) {
+                        // Set or Update
+                        const docRef = existingDocId ? doc(budgetColRef, existingDocId) : doc(budgetColRef);
+                        batch.set(docRef, { category: category, limit: limit });
+                    } else if (existingDocId) {
+                        // Delete if limit is 0 and doc exists (to keep collection clean)
+                        const docRef = doc(budgetColRef, existingDocId);
+                        batch.delete(docRef);
+                    }
+                });
+
+                await batch.commit();
+                await showModal("Success!", "Your budget limits have been successfully saved.", false);
+
+            } catch (error) {
+                console.error("Error saving budgets:", error);
+                await showModal("Save Error", `Failed to save budgets: ${error.message}`, false);
+            } finally {
+                buttonText.textContent = 'Save Budgets';
+                spinner.classList.add('hidden');
+                button.disabled = false;
+            }
+        };
+
+        // --- ADD TRANSACTION LOGIC ---
+
+        const initTransactionForm = (transactionToModify = null) => {
+            const form = $('transaction-form');
+            const typeInputs = form.querySelectorAll('input[name="transactionType"]');
+            const statusInputs = form.querySelectorAll('input[name="paymentStatus"]');
+
+            // Clear pending files on new form/start of modification
+            pendingFiles = [];
+
+            // Populate Category Select
+            const categorySelect = $('transaction-category');
+            categorySelect.innerHTML = EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            // Set current date/time if adding new
+            if (!transactionToModify) {
+                // Clear state from previous transactions
+                $('transaction-id').value = '';
+                $('transaction-narration').value = '';
+                $('transaction-amount').value = '';
+                $('expected-amount').value = '';
+                
+                // Reset radio buttons and headers
+                document.querySelector('input[name="transactionType"][value="INFLOW"]').checked = true;
+                document.querySelector('input[name="paymentStatus"][value="FULL"]').checked = true;
+                $('transaction-header').textContent = 'Add New Transaction';
+                $('transaction-button-text').textContent = 'Record Transaction';
+
+                // FIX 2: AUTOFILLED DATE/TIME
+                const now = new Date();
+                const dateStr = now.toISOString().substring(0, 10);
+                // toTimeString().substring(0, 5) extracts HH:MM
+                const timeStr = now.toTimeString().substring(0, 5); 
+                
+                $('transaction-date').value = dateStr;
+                $('transaction-time').value = timeStr;
+            }
+
+            // Set up dynamic mode/category/status selectors
+            typeInputs.forEach(input => input.addEventListener('change', updateTransactionFormUI));
+            statusInputs.forEach(input => input.addEventListener('change', updateTransactionFormUI));
+            $('open-advance-selector').addEventListener('change', updateDueClearanceSummary);
+            $('bill-upload').addEventListener('change', handleNewFileSelection); 
+
+            // Initial UI update (must be called after elements are populated)
+            updateTransactionFormUI();
+
+            // Handle modification data population
+            if (transactionToModify) {
+                populateFormForModification(transactionToModify);
+            }
+            
+            // Re-render file list after init/modification to clear any artifacts
+            renderFilePreviewList(transactionToModify); 
+        };
+
+        const updateTransactionFormUI = () => {
+            const type = document.querySelector('input[name="transactionType"]:checked').value;
+            const outflowFields = $('outflow-fields');
+            const modeSelect = $('transaction-mode');
+            const modeLabel = $('mode-label');
+            const categorySelect = $('transaction-category');
+            const advanceDueFields = $('advance-due-fields');
+            const advanceFields = $('advance-fields');
+            const dueSection = $('due-clearance-section');
+            const amountInput = $('transaction-amount');
+            const transactionIdInput = $('transaction-id');
+            const currentTxId = transactionIdInput.value;
+
+            // 1. INFLOW/OUTFLOW Toggle
+            if (type === 'INFLOW') {
+                outflowFields.classList.add('hidden');
+                categorySelect.required = false;
+                modeLabel.textContent = 'Inflow Source/Bank';
+                modeSelect.innerHTML = INFLOW_MODES.map(m => `<option value="${m}">${m}</option>`).join('');
+                advanceDueFields.classList.add('hidden');
+                // Ensure no status is checked if we switch to Inflow
+                document.querySelector('input[name="paymentStatus"][value="FULL"]').checked = true;
+
+            } else { // OUTFLOW
+                outflowFields.classList.remove('hidden');
+                categorySelect.required = true;
+                modeLabel.textContent = 'Outflow Transaction Mode';
+                modeSelect.innerHTML = OUTFLOW_MODES.map(m => `<option value="${m}">${m}</option>`).join('');
+            }
+
+            // 2. Payment Status (Only for OUTFLOW)
+            if (type === 'OUTFLOW') {
+                const status = document.querySelector('input[name="paymentStatus"]:checked').value;
+
+                if (status === 'FULL') {
+                    advanceDueFields.classList.add('hidden');
+                    advanceFields.classList.add('hidden');
+                    dueSection.classList.add('hidden');
+                    amountInput.placeholder = 'e.g., 500.50 (Full Amount Paid)';
+                    amountInput.required = true;
+
+                } else if (status === 'ADVANCE') {
+                    advanceDueFields.classList.remove('hidden');
+                    advanceFields.classList.remove('hidden');
+                    dueSection.classList.add('hidden');
+                    amountInput.placeholder = 'e.g., 50.00 (Advance Paid Amount)';
+                    amountInput.required = true;
+
+                } else if (status === 'DUE') {
+                    advanceDueFields.classList.remove('hidden');
+                    advanceFields.classList.add('hidden');
+                    dueSection.classList.remove('hidden');
+                    amountInput.placeholder = 'e.g., 70.00 (Amount Paid to Clear Due)';
+                    amountInput.required = true;
+                    updateDueSelector(currentTxId); // Update the list of open advances
+                }
+            }
+        };
+
+        const updateDueSelector = (currentTxId = null) => {
+            const selector = $('open-advance-selector');
+            selector.innerHTML = '<option value="">-- Select Advance Transaction --</option>';
+
+            // Filter out the current transaction being modified if it's an ADVANCE
+            const validAdvances = openAdvanceTransactions.filter(t => t.id !== currentTxId);
+
+            if (validAdvances.length === 0) {
+                selector.innerHTML += '<option disabled>No open advance payments found.</option>';
+                selector.disabled = true;
+            } else {
+                selector.disabled = false;
+                validAdvances.forEach(t => {
+                    const expected = t.expectedAmount ? ` (Exp: ₹${t.expectedAmount.toLocaleString('en-IN')})` : '';
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = `${t.category} - Paid: ₹${t.amount.toLocaleString('en-IN')}${expected} on ${t.date}`;
+                    selector.appendChild(option);
+                });
+            }
+            updateDueClearanceSummary();
+        };
+
+        const updateDueClearanceSummary = () => {
+            const selector = $('open-advance-selector');
+            const summaryDiv = $('selected-due-summary');
+            const advanceId = selector.value;
+            summaryDiv.classList.add('hidden');
+
+            if (advanceId) {
+                const advanceTx = allTransactions.find(t => t.id === advanceId);
+                if (advanceTx) {
+                    // Filter transactions related to this advance (the advance itself + all associated DUE payments)
+                    const totalPaid = allTransactions
+                        .filter(t => t.status !== 'FULL' && (t.id === advanceTx.id || t.openDueId === advanceTx.id))
+                        .reduce((sum, t) => sum + t.amount, 0);
+
+                    const paidOnlyAdvance = advanceTx.amount;
+                    const duePaid = totalPaid - paidOnlyAdvance;
+                    const expected = advanceTx.expectedAmount;
+                    let dueAmountMessage;
+
+                    if (expected) {
+                        const dueAmount = expected - totalPaid;
+                        dueAmountMessage = dueAmount > 0 ?
+                            `Remaining Due: ₹${dueAmount.toLocaleString('en-IN')}` :
+                            `<span class="text-red-600 font-bold">Overpaid/Adjusted: ₹${Math.abs(dueAmount).toLocaleString('en-IN')}</span>`;
+                    } else {
+                        dueAmountMessage = `<span class="italic">Expected amount was unknown. Self-declare closure.</span>`;
+                    }
+
+                    summaryDiv.innerHTML = `
+                        <p class="font-bold text-gray-800">Clearing Due for: ${advanceTx.category}</p>
+                        <p>Advance Paid: ₹${paidOnlyAdvance.toLocaleString('en-IN')}</p>
+                        <p>Previous Due Cleared: ₹${duePaid.toLocaleString('en-IN')}</p>
+                        <p>${dueAmountMessage}</p>
+                    `;
+                    summaryDiv.classList.remove('hidden');
+                }
+            }
+        };
+
+        const populateFormForModification = (tx) => {
+            $('transaction-header').textContent = `Modify Transaction (${tx.id.substring(0, 8)}...)`;
+            $('transaction-button-text').textContent = 'Save Changes';
+            $('transaction-id').value = tx.id;
+
+            // Initialize pendingFiles with existing files
+            pendingFiles = tx.files || [];
+
+            // Set Type
+            document.querySelector(`input[name="transactionType"][value="${tx.type}"]`).checked = true;
+            updateTransactionFormUI(); // Recalculate mode options
+
+            // Set Date/Time/Amount/Narration
+            $('transaction-date').value = tx.date;
+            $('transaction-time').value = tx.time || '00:00';
+            $('transaction-amount').value = tx.amount;
+            $('transaction-narration').value = tx.narration || '';
+            $('transaction-mode').value = tx.mode;
+
+            // Set OUTFLOW specific fields
+            if (tx.type === 'OUTFLOW') {
+                $('transaction-category').value = tx.category;
+
+                // Set Status
+                document.querySelector(`input[name="paymentStatus"][value="${tx.status}"]`).checked = true;
+                updateTransactionFormUI(); // Recalculate advance/due fields
+
+                if (tx.status === 'ADVANCE') {
+                    $('expected-amount').value = tx.expectedAmount || '';
+                }
+
+                // Note: The DUE status can now be modified but only after re-opening the parent.
+            }
+
+            // Render file list after initializing pendingFiles
+            renderFilePreviewList(tx);
+            
+            // If this is a DUE payment modification, pre-select the parent ADVANCE in the dropdown
+            if (tx.status === 'DUE' && tx.openDueId) {
+                // Wait for updateDueSelector to populate options, then set value
+                setTimeout(() => {
+                    $('open-advance-selector').value = tx.openDueId;
+                    updateDueClearanceSummary();
+                }, 100); 
+            }
+        };
+        
+        // Handle accumulation of newly selected files
+        const handleNewFileSelection = () => {
+            const fileInput = $('bill-upload');
+            // Add new files (which are File objects) to the pending list
+            Array.from(fileInput.files).forEach(file => {
+                // Check against existing (Base64 objects) and pending (File objects) to avoid duplicates
+                const isDuplicate = pendingFiles.some(f => (f instanceof File && f.name === file.name && f.size === file.size) || (f.name === file.name && f.data));
+                if (!isDuplicate) {
+                    pendingFiles.push(file);
+                }
+            });
+            renderFilePreviewList();
+            fileInput.value = null; // Clear the input value so the change event fires again
+        };
+
+        // Renders both existing (Base64) and pending (File object) files
+        const renderFilePreviewList = (currentTx = null) => {
+            const previewList = $('file-preview-list');
+            previewList.innerHTML = '';
+            
+            // Only consider files that are not marked for removal (for existing txs)
+            const filesToDisplay = pendingFiles.filter(f => !f.remove);
+
+            // Separate existing (Base64 objects with 'data' property) and new (File objects)
+            const existingFiles = filesToDisplay.filter(f => ! (f instanceof File));
+            const newFiles = filesToDisplay.filter(f => f instanceof File);
+            
+            existingFiles.forEach((file, index) => {
+                previewList.innerHTML += createExistingFilePreview(file.name, index);
+            });
+            
+            newFiles.forEach((file, index) => {
+                previewList.innerHTML += createPendingFilePreview(file.name, index);
+            });
+
+            // Re-attach listeners for removals
+            attachExistingFileRemovalListeners(pendingFiles);
+            attachPendingFileRemovalListeners();
+            
+            // Check max file limit
+            if (filesToDisplay.length > 7) {
+                showModal("File Limit Exceeded", `You have selected ${filesToDisplay.length} files. Please remove at least ${filesToDisplay.length - 7} files.`, false);
+            }
+
+            lucide.createIcons();
+        };
+
+        const createExistingFilePreview = (fileName, index) => `
+            <div id="file-existing-${index}" data-name="${fileName}" data-type="existing" class="flex justify-between items-center p-2 bg-gray-100 rounded-lg text-sm">
+                <span class="truncate pr-4">${fileName} (Existing)</span>
+                <button type="button" data-file-name="${fileName}" class="remove-existing-file text-red-500 hover:text-red-700" title="Remove Existing File">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        `;
+        
+        const createPendingFilePreview = (fileName, index) => `
+            <div id="file-pending-${index}" data-name="${fileName}" data-type="pending" class="flex justify-between items-center p-2 bg-yellow-50 rounded-lg text-sm border-yellow-300 border">
+                <span class="truncate pr-4">${fileName} (New - Pending Save)</span>
+                <button type="button" data-file-name="${fileName}" class="remove-pending-file text-red-500 hover:text-red-700" title="Remove Pending File">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        `;
+
+        const attachExistingFileRemovalListeners = (files) => {
+            document.querySelectorAll('.remove-existing-file').forEach(button => {
+                button.onclick = (e) => {
+                    const fileName = e.currentTarget.dataset.fileName;
+                    
+                    // Mark the file object in the pendingFiles array for removal
+                    const fileToRemove = files.find(f => f.name === fileName && ! (f instanceof File));
+                    if (fileToRemove) {
+                        fileToRemove.remove = true;
+                    }
+
+                    // Visually update the list
+                    renderFilePreviewList();
+                };
+            });
+        };
+        
+        const attachPendingFileRemovalListeners = () => {
+            document.querySelectorAll('.remove-pending-file').forEach(button => {
+                button.onclick = (e) => {
+                    const fileName = e.currentTarget.dataset.fileName;
+                    
+                    // Filter out the File object from pendingFiles
+                    pendingFiles = pendingFiles.filter(f => !(f instanceof File && f.name === fileName));
+                    
+                    // Visually update the list
+                    renderFilePreviewList();
+                };
+            });
+        };
+
+        const handleTransactionSubmit = async (e) => {
+            e.preventDefault();
+
+            const button = $('submit-transaction-btn');
+            const buttonText = $('transaction-button-text');
+            const spinner = $('transaction-spinner');
+
+            buttonText.textContent = 'Processing...';
+            spinner.classList.remove('hidden');
+            button.disabled = true;
+
+            const txId = $('transaction-id').value;
+            const isModification = !!txId;
+            let transactionRef = null;
+            let currentTx = null;
+
+            if (isModification) {
+                currentTx = allTransactions.find(t => t.id === txId);
+                if (!currentTx) {
+                    await showModal("Error", "Transaction to modify not found in the database.", false);
+                    return;
+                }
+                transactionRef = doc(getTransactionCollectionRef(), txId);
+            } else {
+                transactionRef = doc(getTransactionCollectionRef());
+            }
+
+            // 1. Gather form data
+            const type = document.querySelector('input[name="transactionType"]:checked').value;
+            const date = $('transaction-date').value;
+            const time = $('transaction-time').value;
+            const mode = $('transaction-mode').value;
+            const amount = parseFloat($('transaction-amount').value);
+            const narration = $('transaction-narration').value;
+
+            let category = null;
+            let status = 'FULL';
+            let expectedAmount = null;
+            let openDueId = null; // Only for DUE transactions
+
+            if (type === 'OUTFLOW') {
+                category = $('transaction-category').value;
+                status = document.querySelector('input[name="paymentStatus"]:checked').value;
+
+                if (status === 'ADVANCE') {
+                    expectedAmount = parseFloat($('expected-amount').value) || null;
+                } else if (status === 'DUE') {
+                    openDueId = $('open-advance-selector').value;
+                    if (!openDueId) {
+                        await showModal("Validation Error", "Please select an **Open Advance Transaction** to clear a due amount.", false);
+                        buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                        spinner.classList.add('hidden');
+                        button.disabled = false;
+                        return;
+                    }
+                }
+            }
+            
+            // 2. Process Files (using pendingFiles array)
+            const filesToKeep = pendingFiles.filter(f => !f.remove && ! (f instanceof File)); // Existing files (Base64 objects)
+            const filesToUpload = pendingFiles.filter(f => f instanceof File); // New files (File objects)
+
+            if (filesToKeep.length + filesToUpload.length > 7) {
+                 await showModal("Validation Error", `The total number of files exceeds the maximum limit of 7. Please remove files before saving.`, false);
+                buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                spinner.classList.add('hidden');
+                button.disabled = false;
+                return;
+            }
+
+            let newFiles = [];
+            try {
+                const filePromises = filesToUpload.map(fileToBase64);
+                newFiles = await Promise.all(filePromises);
+            } catch (error) {
+                await showModal("File Error", `One or more files exceeded the size limit (Max 200KB per file): ${error.message}`, false);
+                buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                spinner.classList.add('hidden');
+                button.disabled = false;
+                return;
+            }
+
+            const finalFiles = filesToKeep.concat(newFiles);
+
+            // 3. Prepare Transaction Data
+            let isClosedStatus = type === 'INFLOW' || status === 'FULL'; // Default closure status for standard FULL or INFLOW
+
+            const transactionData = {
+                date: date,
+                time: time,
+                type: type,
+                mode: mode,
+                category: category,
+                amount: amount,
+                narration: narration,
+                files: finalFiles,
+                status: type === 'INFLOW' ? 'FULL' : status, // Inflows are always FULL
+                expectedAmount: type === 'INFLOW' ? null : expectedAmount,
+                openDueId: type === 'INFLOW' ? null : openDueId,
+                isClosed: isClosedStatus, // Will be overridden for ADVANCE/DUE status
+                modifiedAt: isModification ? new Date().toISOString() : null
+            };
+
+            // Set isClosed status for ADVANCE/DUE
+            if (status === 'ADVANCE') {
+                 transactionData.isClosed = false; // Always open initially
+            } else if (status === 'DUE') {
+                 transactionData.isClosed = true; // DUE transaction itself is closed (represents a single payment event)
+            }
+
+
+            // Precautionary prompt for ADVANCE modification
+            if (status === 'ADVANCE' && isModification) {
+                const amountChanged = currentTx.amount !== amount;
+                const expectedChanged = currentTx.expectedAmount !== expectedAmount;
+
+                if (amountChanged || expectedChanged) {
+                    const keepOpen = await showModal(
+                        "Advance Transaction Modified",
+                        `You have changed key values (paid amount or expected amount). Do you want to keep this advance **OPEN** for future due payments? (Click **Yes, Proceed** to close it now, or **Cancel** to keep it open)`,
+                        true 
+                    );
+                    // If user clicks "Yes, Proceed" (confirm), they want to CLOSE it (isClosed = true).
+                    // If user clicks "Cancel", they want to keep it OPEN (isClosed = false).
+                    transactionData.isClosed = !keepOpen; // Logic inverted for clarity
+                } else {
+                    // If no key values changed, retain existing closed status
+                    transactionData.isClosed = currentTx.isClosed;
+                }
+            }
+
+
+            // 4. Handle Complex Advance/Due Logic (Using Firestore Transaction)
+            if (status === 'DUE' && openDueId) {
+                try {
+                    await runTransaction(db, async (t) => {
+                        const advanceDocRef = doc(getTransactionCollectionRef(), openDueId);
+                        const advanceDoc = await t.get(advanceDocRef);
+
+                        if (!advanceDoc.exists()) {
+                            throw new Error("Advance transaction not found for due clearance.");
+                        }
+
+                        const advanceTx = advanceDoc.data();
+
+                        // We must find ALL *other* related payments (including advance and other due payments)
+                        const allRelated = allTransactions.filter(tx => 
+                            (tx.id === advanceTx.id) || (tx.openDueId === advanceTx.id)
+                        );
+                        
+                        // Exclude the current transaction being modified (if it's a modification)
+                        const totalPaidExcludingThisTx = allRelated
+                            .filter(tx => tx.id !== txId)
+                            .reduce((sum, tx) => sum + tx.amount, 0);
+                            
+                        const newTotalPaid = totalPaidExcludingThisTx + amount;
+
+                        // 2. Determine if the advance transaction should be closed
+                        let shouldCloseAdvance = false;
+
+                        if (advanceTx.expectedAmount) {
+                            // Case 1: Full price is known
+                            if (newTotalPaid >= advanceTx.expectedAmount) {
+                                // Close if paid in full or overpaid
+                                shouldCloseAdvance = true;
+                                await showModal("Due Cleared!", `The total payment (₹${newTotalPaid.toLocaleString('en-IN')}) now covers the expected amount (₹${advanceTx.expectedAmount.toLocaleString('en-IN')}). The advance transaction will be closed.`, false);
+                            } else {
+                                // Still partial payment
+                                const confirmInstallment = await showModal("Installment Payment?", `The due is not fully cleared yet (Remaining due: ₹${(advanceTx.expectedAmount - newTotalPaid).toLocaleString('en-IN')}). Do you want to close the original advance transaction anyway?`, true);
+                                shouldCloseAdvance = confirmInstallment;
+                            }
+
+                        } else {
+                            // Case 2: Full price is not known
+                            const confirmClose = await showModal("Close Advance?", "The full price was not known. Do you confirm that this payment clears the due and the original advance transaction should be closed?", true);
+                            shouldCloseAdvance = confirmClose;
+                        }
+
+                        // 3. Update the original advance transaction
+                        t.update(advanceDocRef, { isClosed: shouldCloseAdvance, totalPaid: newTotalPaid });
+
+                        // 4. Save the new DUE transaction (or update if modification)
+                        t.set(transactionRef, transactionData);
+                    });
+
+                    await showModal("Due Clearance Recorded!", `Due payment of ₹${amount.toLocaleString('en-IN')} recorded against advance ID ${openDueId.substring(0, 8)}.`, false);
+
+                } catch (error) {
+                    console.error("Firestore Transaction Error:", error);
+                    await showModal("Transaction Failed", `Due clearance could not be processed: ${error.message}`, false);
+                    buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                    spinner.classList.add('hidden');
+                    button.disabled = false;
+                    return;
+                }
+
+            } else {
+                // Handle standard FULL or ADVANCE transaction (or INFLOW)
+                try {
+                    await setDoc(transactionRef, transactionData);
+                    await showModal("Success!", `Transaction recorded successfully. ID: ${transactionRef.id.substring(0, 8)}...`, false);
+                } catch (error) {
+                    console.error("Firestore Save Error:", error);
+                    await showModal("Save Error", `Failed to record transaction: ${error.message}`, false);
+                    buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                    spinner.classList.add('hidden');
+                    button.disabled = false;
+                    return;
+                }
+            }
+
+            // 5. Reset Form/UI
+            $('transaction-form').reset();
+            initTransactionForm(); // Re-initialize the form to clear modification state
+            setActiveTab('transaction-history'); // Show history after success
+
+            buttonText.textContent = 'Record Transaction';
+            spinner.classList.add('hidden');
+            button.disabled = false;
+        };
+
+        // --- TRANSACTION HISTORY LOGIC ---
+
+        const renderTransactionHistory = () => {
+            $('history-loader').classList.add('hidden');
+            const list = $('transaction-list');
+            list.innerHTML = '';
+
+            if (allTransactions.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-center p-4">No transactions recorded yet.</p>';
+                return;
+            }
+
+            allTransactions.forEach(tx => {
+                const isOutflow = tx.type === 'OUTFLOW';
+                const isDue = tx.status === 'DUE'; 
+
+                const statusColor = tx.status === 'FULL' ? 'bg-green-100 text-green-800' :
+                                       tx.status === 'ADVANCE' && !tx.isClosed ? 'bg-yellow-100 text-yellow-800' :
+                                       tx.status === 'ADVANCE' && tx.isClosed ? 'bg-gray-100 text-gray-600' :
+                                       tx.status === 'DUE' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800';
+                const typeColor = isOutflow ? 'text-red-600' : 'text-green-600';
+                const icon = isOutflow ? 'arrow-down' : 'arrow-up';
+
+                let details = '';
+                if (isOutflow) {
+                    details += `<p class="text-xs text-gray-500 mt-1">${tx.category} - Via ${tx.mode}</p>`;
+                    if (tx.status === 'ADVANCE') {
+                        details += `<p class="text-xs text-yellow-700 font-medium">Advance. Exp: ₹${tx.expectedAmount ? tx.expectedAmount.toLocaleString('en-IN') : '?'}${tx.isClosed ? ' (CLOSED)' : ' (OPEN)'}</p>`;
+                    } else if (tx.status === 'DUE') {
+                        details += `<p class="text-xs text-blue-700 font-medium">Due Clearance (Ref: ${tx.openDueId ? tx.openDueId.substring(0, 8) : '?'})</p>`;
+                    }
+                } else {
+                    details += `<p class="text-xs text-gray-500 mt-1">Via ${tx.mode}</p>`;
+                }
+
+                let fileButtons = '';
+                (tx.files || []).forEach((file, index) => {
+                    // Check if file data is base64 (starts with data:)
+                    const isBase64 = file.data && file.data.startsWith('data:');
+                    if (isBase64) {
+                        fileButtons += `
+                            <a href="${file.data}" download="${file.name}"
+                               class="text-xs inline-flex items-center text-blue-600 hover:text-blue-800 border border-blue-300 rounded-full px-2 py-1 transition duration-150">
+                                <i data-lucide="download" class="w-3 h-3 mr-1"></i> ${file.name}
+                            </a>
+                        `;
+                    } else {
+                        // Handle case where file data might be corrupted or missing
+                        fileButtons += `
+                            <span class="text-xs inline-flex items-center text-gray-600 border border-gray-300 rounded-full px-2 py-1">
+                                <i data-lucide="alert-triangle" class="w-3 h-3 mr-1"></i> File Missing/Error
+                            </span>
+                        `;
+                    }
+                });
+
+                const item = document.createElement('div');
+                item.className = 'card p-4 border border-gray-200';
+                item.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <!-- Left: Info -->
+                        <div class="flex-1 min-w-0 pr-4">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="${icon}" class="w-5 h-5 ${typeColor}"></i>
+                                <span class="font-bold ${typeColor} text-xl">₹${tx.amount.toLocaleString('en-IN')}</span>
+                                <span class="text-xs font-semibold ${statusColor} px-2 py-0.5 rounded-full">${tx.status}</span>
+                            </div>
+                            <p class="text-sm text-gray-800 mt-1 truncate">${tx.narration || 'No Narration'}</p>
+                            ${details}
+                            <p class="text-xs text-gray-400 mt-1">${tx.date} at ${tx.time || '00:00'}</p>
+                        </div>
+
+                        <!-- Right: Actions -->
+                        <div class="flex space-x-2 flex-shrink-0">
+                            <button data-id="${tx.id}" class="modify-btn p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition duration-150" title="Modify">
+                                <i data-lucide="edit" class="w-4 h-4"></i>
+                            </button>
+                            <button data-id="${tx.id}" class="delete-btn p-2 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition duration-150" title="Delete">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-gray-100 space-x-2">
+                        ${fileButtons || '<span class="text-xs text-gray-400">No bills uploaded.</span>'}
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+
+            // Re-render icons for new elements
+            lucide.createIcons();
+
+            // Attach event listeners for actions
+            document.querySelectorAll('.modify-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                const txId = e.currentTarget.dataset.id;
+                const tx = allTransactions.find(t => t.id === txId);
+
+                // Logic to temporarily re-open parent advance for DUE modification
+                if (tx && tx.status === 'DUE' && tx.openDueId) {
+                    const confirmReopen = await showModal(
+                        "Modify Due Payment", 
+                        `Modifying this Due Clearance payment requires temporarily **re-opening** the parent Advance transaction (ID: ${tx.openDueId.substring(0, 8)}...). The advance will be fully recalculated and potentially re-closed on save. Do you want to proceed?`, 
+                        true
+                    );
+                    
+                    if (!confirmReopen) return;
+
+                    try {
+                        // Temporarily re-open the parent advance transaction using a simple merge update
+                        await setDoc(doc(getTransactionCollectionRef(), tx.openDueId), { isClosed: false }, { merge: true });
+                        console.log(`Parent Advance ${tx.openDueId} temporarily re-opened for DUE modification.`);
+                    } catch(error) {
+                         console.error("Failed to reopen parent advance:", error);
+                         await showModal("Error", "Failed to prepare parent advance for modification. Please try deleting the DUE transaction instead.", false);
+                         return;
+                    }
+                }
+                
+                if (tx) {
+                    setActiveTab('add-transaction');
+                    initTransactionForm(tx);
+                }
+            }));
+
+            document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
+                const txId = e.currentTarget.dataset.id;
+                const tx = allTransactions.find(t => t.id === txId);
+
+                if (tx.status === 'ADVANCE' && !tx.isClosed) {
+                    const confirmDelete = await showModal("Warning!", `This is an **OPEN ADVANCE** transaction for **${tx.category}** (₹${tx.amount.toLocaleString('en-IN')}). Deleting it might break the record keeping if it has related DUE payments. Are you sure you want to delete it?`, true);
+                    if (!confirmDelete) return;
+                }
+                if (tx.status === 'DUE') {
+                    const confirmDelete = await showModal("Warning!", `This is a **DUE CLEARANCE** transaction. Deleting it will re-open the original advance transaction if it was closed by this payment. Proceed?`, true);
+                    if (!confirmDelete) return;
+                }
+
+                await handleDeleteTransaction(txId);
+            }));
+        };
+
+        const handleDeleteTransaction = async (txId) => {
+             const txToDelete = allTransactions.find(t => t.id === txId);
+             if (!txToDelete) return;
+
+             try {
+                await runTransaction(db, async (t) => {
+                    const txRef = doc(getTransactionCollectionRef(), txId);
+
+                    // 1. If deleting a DUE clearance, check if it was the closing payment
+                    if (txToDelete.status === 'DUE' && txToDelete.openDueId) {
+                        const advanceDocRef = doc(getTransactionCollectionRef(), txToDelete.openDueId);
+                        const advanceDoc = await t.get(advanceDocRef);
+
+                        if (advanceDoc.exists()) {
+                            const advanceTx = advanceDoc.data();
+                            
+                            // Re-calculate total paid without the transaction being deleted
+                            const allRelatedPayments = allTransactions.filter(tx =>
+                                (tx.id === txToDelete.openDueId || tx.openDueId === txToDelete.openDueId) && tx.id !== txId
+                            );
+                            const newTotalPaid = allRelatedPayments.reduce((sum, tx) => sum + tx.amount, 0);
+
+                            let shouldReOpen = false;
+                            if (advanceTx.expectedAmount) {
+                                // Re-open if deleting this payment drops the total paid below expected amount
+                                shouldReOpen = newTotalPaid < advanceTx.expectedAmount;
+                            } else if (advanceTx.isClosed) {
+                                // If unknown amount, and the advance was closed, always re-open 
+                                // because the user is deleting the payment that closed it.
+                                shouldReOpen = true;
+                            }
+
+                            if (shouldReOpen) {
+                                t.update(advanceDocRef, { isClosed: false });
+                                console.log(`Re-opened advance transaction ${txToDelete.openDueId}.`);
+                            }
+                            
+                            // Also update the totalPaid field on the advance transaction
+                            t.update(advanceDocRef, { totalPaid: newTotalPaid });
+                        }
+                    }
+
+                    // 2. Delete the main transaction
+                    t.delete(txRef);
+                });
+
+                await showModal("Deleted!", "The transaction has been successfully removed.", false);
+
+             } catch (error) {
+                console.error("Deletion Error:", error);
+                await showModal("Deletion Failed", `Could not delete transaction: ${error.message}`, false);
+             }
+        };
+
+
+        // --- UI AND NAVIGATION LOGIC ---
+
+        const setActiveTab = (tabName) => {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+
+            $(`tab-${tabName}`).classList.remove('hidden');
+            document.querySelector(`.tab-button[data-tab="${tabName}"]`).classList.add('active');
+
+            if (tabName === 'add-transaction' && !$('transaction-id').value) {
+                // Always reset form to 'Add New' state when entering this tab unless modifying
+                initTransactionForm();
+            }
+        };
+
+        const handleLogin = () => {
+            const inputPasscode = $('passcode-input').value;
+            const errorDiv = $('login-error');
+
+            if (inputPasscode === FAMILY_PASSCODE) {
+                $('login-screen').classList.add('hidden');
+                $('main-app').classList.remove('hidden');
+                errorDiv.classList.add('hidden');
+                localStorage.setItem('jpuja-passcode', FAMILY_PASSCODE); // Store for auto-login
+                initFirebase(); // Start the app
+            } else {
+                errorDiv.classList.remove('hidden');
+            }
+        };
+
+        // --- Event Listeners and Initial Load ---
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for existing user ID in local storage for a faster login prompt experience
+            const storedPasscode = localStorage.getItem('jpuja-passcode');
+            if (storedPasscode === FAMILY_PASSCODE) {
+                handleLogin(); // Auto-login if previous session was successful
+            }
+
+            // Global modal handlers
+            modalConfirm.addEventListener('click', () => modal.classList.add('opacity-0', 'invisible'));
+            modalCancel.addEventListener('click', () => modal.classList.add('opacity-0', 'invisible'));
+
+            // Login Listener
+            $('login-button').addEventListener('click', handleLogin);
+            $('passcode-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleLogin();
+            });
+
+            // Tab Navigation
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => setActiveTab(e.currentTarget.dataset.tab));
+            });
+
+            // Budget Save Listener
+            $('save-budget-btn').addEventListener('click', handleSaveBudgets);
+
+            // Transaction Form Submit Listener
+            $('transaction-form').addEventListener('submit', handleTransactionSubmit);
+
+            // Set initial tab
+            setActiveTab('dashboard');
+
+            // If the main app is visible (due to auto-login), ensure Firebase is initialized
+            if (!$('main-app').classList.contains('hidden') && !app) {
+                 initFirebase();
+            }
+        });
+
+    </script>
+</body>
+</html>
