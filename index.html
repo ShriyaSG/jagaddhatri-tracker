@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jagaddhatri Puja Finance Tracker</title>
-    <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         /* Custom styles for Inter font and general aesthetics */
@@ -50,7 +48,6 @@
 </head>
 <body class="min-h-screen">
 
-    <!-- Modal for Messages/Confirmation (Replaces alert() and confirm()) -->
     <div id="message-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center opacity-0 invisible">
         <div class="card p-6 w-11/12 max-w-sm">
             <h3 id="modal-title" class="text-xl font-bold mb-4 text-gray-800">Alert</h3>
@@ -62,7 +59,6 @@
         </div>
     </div>
 
-    <!-- Login/Access Screen -->
     <div id="login-screen" class="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
         <div class="card p-8 w-full max-w-md text-center">
             <h1 class="text-3xl font-extrabold text-red-600 mb-4">Puja Finance Tracker</h1>
@@ -75,9 +71,7 @@
         </div>
     </div>
 
-    <!-- Main Application Screen -->
     <div id="main-app" class="hidden min-h-screen flex flex-col">
-        <!-- Header and Tabs -->
         <header class="bg-white shadow-md sticky top-0 z-10">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
                 <h1 class="text-xl font-bold text-red-600">J-Puja Tracker</h1>
@@ -94,9 +88,7 @@
             </nav>
         </header>
 
-        <!-- Main Content Area -->
         <main class="flex-grow max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 w-full">
-            <!-- Dashboard Tab -->
             <div id="tab-dashboard" class="tab-content">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Overview Dashboard</h2>
                 <div id="dashboard-loader" class="text-center p-8 hidden">
@@ -104,23 +96,29 @@
                     <p class="text-gray-500">Calculating Finances...</p>
                 </div>
                 <div id="dashboard-content" class="space-y-8">
-                    <!-- Summary Cards -->
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
                         <div class="card p-5 bg-red-50 border-l-4 border-red-500">
-                            <p class="text-sm font-medium text-gray-500">Total Spent</p>
+                            <p class="text-sm font-medium text-gray-500">Total Expense</p>
                             <p id="total-spent" class="mt-1 text-3xl font-semibold text-red-600">₹0</p>
                         </div>
                         <div class="card p-5 bg-green-50 border-l-4 border-green-500">
-                            <p class="text-sm font-medium text-gray-500">Total Inflow</p>
+                            <p class="text-sm font-medium text-gray-500">Total Cash Inflow</p>
                             <p id="total-inflow" class="mt-1 text-3xl font-semibold text-green-600">₹0</p>
                         </div>
+                        <div class="card p-5 bg-yellow-50 border-l-4 border-yellow-500">
+                            <p class="text-sm font-medium text-gray-500">Cash Outflow</p>
+                            <p id="cash-outflow" class="mt-1 text-3xl font-semibold text-yellow-600">₹0</p>
+                        </div>
                         <div class="card p-5 bg-blue-50 border-l-4 border-blue-500">
-                            <p class="text-sm font-medium text-gray-500">Net Balance</p>
-                            <p id="net-balance" class="mt-1 text-3xl font-semibold text-blue-600">₹0</p>
+                            <p class="text-sm font-medium text-gray-500">Cash In Hand (Inflow - Cash Out)</p>
+                            <p id="cash-in-hand" class="mt-1 text-3xl font-semibold text-blue-600">₹0</p>
+                        </div>
+                        <div class="card p-5 bg-purple-50 border-l-4 border-purple-500 col-span-2 md:col-span-1">
+                            <p class="text-sm font-medium text-gray-500">UPI/Bank Outflow</p>
+                            <p id="upi-outflow" class="mt-1 text-3xl font-semibold text-purple-600">₹0</p>
                         </div>
                     </div>
 
-                    <!-- Budget vs Actual Chart/List -->
                     <div>
                         <h3 class="text-2xl font-semibold text-gray-800 mb-4">Budget Progress by Category</h3>
                         <div class="card p-4">
@@ -130,7 +128,6 @@
                         </div>
                     </div>
 
-                    <!-- Top 5 Categories -->
                     <div>
                         <h3 class="text-2xl font-semibold text-gray-800 mb-4">Top Spending Categories (Count)</h3>
                         <div class="card p-4">
@@ -142,13 +139,11 @@
                 </div>
             </div>
 
-            <!-- Budget Planner Tab -->
             <div id="tab-budget-planner" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Budget Planner</h2>
                 <div class="card p-6">
                     <p class="text-gray-600 mb-4">Set the maximum spending limit for each expense category. Leave blank or 0 for no limit.</p>
                     <div id="budget-form-container" class="space-y-4">
-                        <!-- Budget inputs will be generated here -->
                         <div id="budget-loader" class="text-center p-8">
                             <div class="pulse-loader w-6 h-6 border-4 rounded-full mx-auto mb-2"></div>
                             <p class="text-gray-500 text-sm">Loading categories...</p>
@@ -161,20 +156,18 @@
                 </div>
             </div>
 
-            <!-- Add Transaction Tab -->
             <div id="tab-add-transaction" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6" id="transaction-header">Add New Transaction</h2>
                 <div class="card p-6">
                     <form id="transaction-form" class="space-y-4">
-                        <!-- Hidden field for transaction ID (for modification) -->
                         <input type="hidden" id="transaction-id" value="">
+                        <input type="hidden" id="transaction-amount" value="0"> 
 
-                        <!-- Transaction Type (INFLOW/OUTFLOW) -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
                             <div class="flex space-x-4">
-                                <label class="flex items-center space-x-2 cursor-pointer p-3 border rounded-lg flex-grow hover:bg-gray-50 has-[:checked]:border-red-500">
-                                    <input type="radio" name="transactionType" value="INFLOW" required class="form-radio text-red-600" checked>
+                                <label class="flex items-center space-x-2 cursor-pointer p-3 border rounded-lg flex-grow hover:bg-gray-50 has-[:checked]:border-green-500">
+                                    <input type="radio" name="transactionType" value="INFLOW" required class="form-radio text-green-600" checked>
                                     <span class="font-medium text-green-600">INFLOW (Money In)</span>
                                 </label>
                                 <label class="flex items-center space-x-2 cursor-pointer p-3 border rounded-lg flex-grow hover:bg-gray-50 has-[:checked]:border-red-500">
@@ -184,7 +177,6 @@
                             </div>
                         </div>
 
-                        <!-- Date and Time -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label for="transaction-date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
@@ -196,21 +188,19 @@
                             </div>
                         </div>
 
-                        <!-- Transaction Mode (Dynamic based on Type) -->
                         <div>
-                            <label for="transaction-mode" class="block text-sm font-medium text-gray-700 mb-1" id="mode-label">Inflow Bank</label>
+                            <label for="transaction-mode" class="block text-sm font-medium text-gray-700 mb-1" id="mode-label">Inflow Source/Bank</label>
                             <select id="transaction-mode" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></select>
                         </div>
+                        
+                        <div>
+                            <label for="transaction-total-amount" class="block text-sm font-medium text-gray-700 mb-1">Total Transaction Amount (INR)</label>
+                            <input type="number" id="transaction-total-amount" required min="0.01" step="0.01" placeholder="e.g., 5000.00 (Total Amount)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
+                        </div>
 
-                        <!-- OUTFLOW Specific Fields -->
+
                         <div id="outflow-fields" class="space-y-4 hidden">
-                            <!-- Category -->
-                            <div>
-                                <label for="transaction-category" class="block text-sm font-medium text-gray-700 mb-1">Expense Category</label>
-                                <select id="transaction-category" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></select>
-                            </div>
 
-                            <!-- Payment Status (Full/Advance/Due) -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
                                 <div class="flex space-x-2 overflow-x-auto pb-1">
@@ -228,51 +218,48 @@
                                     </label>
                                 </div>
                             </div>
-
-                            <!-- Advance/Due Conditional Fields -->
+                            
                             <div id="advance-due-fields" class="card p-4 bg-yellow-50 border border-yellow-200 hidden">
-                                <!-- Due Clearance Section -->
                                 <div id="due-clearance-section" class="hidden">
                                     <label for="open-advance-selector" class="block text-sm font-medium text-gray-700 mb-1">Select Open Advance Transaction</label>
-                                    <select id="open-advance-selector" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 mb-3"></select>
+                                    <select id="open-advance-selector" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 mb-3"></select>
                                     <div id="selected-due-summary" class="text-sm text-gray-600 p-2 bg-yellow-100 rounded-lg hidden"></div>
                                 </div>
 
-                                <!-- Advance Payment Fields -->
-                                <div id="advance-fields" class="hidden space-y-3">
-                                    <div>
-                                        <label for="expected-amount" class="block text-sm font-medium text-gray-700 mb-1">Full Expected Amount (Optional)</label>
-                                        <input type="number" id="expected-amount" placeholder="e.g., 10000 (Estimate)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                                    </div>
-                                    <!-- Advance Paid Amount is captured in the main 'Amount' field -->
+                                <div id="advance-fields" class="hidden">
+                                    <label for="expected-amount" class="block text-sm font-medium text-gray-700 mb-1">Full Expected Amount (Optional)</label>
+                                    <input type="number" id="expected-amount" placeholder="e.g., 10000 (Estimate for the entire service/item)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
                                 </div>
                             </div>
+
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2 mt-4 flex justify-between items-center">
+                                    <span>Category Splits</span>
+                                    <span id="split-summary" class="text-xs font-normal text-gray-500">Split Total: ₹0</span>
+                                </label>
+                                <div id="category-split-container" class="space-y-3 p-4 border rounded-lg bg-gray-50">
+                                    </div>
+                                <button type="button" id="add-split-btn" class="mt-3 w-full py-2 border border-gray-300 text-gray-600 font-medium rounded-lg hover:bg-gray-100 transition duration-150">
+                                    <i data-lucide="plus" class="w-4 h-4 mr-2 inline-block"></i> Add Category Split
+                                </button>
+                            </div>
+                            
                         </div>
 
-                        <!-- Amount -->
-                        <div>
-                            <label for="transaction-amount" class="block text-sm font-medium text-gray-700 mb-1">Amount (INR)</label>
-                            <input type="number" id="transaction-amount" required min="0.01" step="0.01" placeholder="e.g., 500.50" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                        </div>
-
-                        <!-- Narration/Description -->
                         <div>
                             <label for="transaction-narration" class="block text-sm font-medium text-gray-700 mb-1">Narration (Optional)</label>
                             <textarea id="transaction-narration" rows="2" placeholder="Brief description of the transaction..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500"></textarea>
                         </div>
 
-                        <!-- File Uploads -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Upload Bill/Receipts (Max 7 files)</label>
-                            <!-- Note: The 'multiple' attribute ensures multiple files can be selected in one go. We use JS to accumulate files from repeated selections. -->
                             <input type="file" id="bill-upload" multiple accept="image/*, application/pdf" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
                             <p class="text-xs text-gray-500 mt-1">**IMPORTANT:** Max 7 files. Use the input above to **select all files at once, or repeatedly** to accumulate them here. Max 200KB per file.</p>
                             <div id="file-preview-list" class="mt-2 space-y-2">
-                                <!-- Existing and newly selected files list -->
-                            </div>
+                                </div>
                         </div>
 
-                        <!-- Submit Button -->
                         <button type="submit" id="submit-transaction-btn" class="w-full py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 transition duration-150 flex items-center justify-center">
                             <span id="transaction-button-text">Record Transaction</span>
                             <div id="transaction-spinner" class="pulse-loader w-5 h-5 border-4 rounded-full ml-3 hidden"></div>
@@ -281,7 +268,6 @@
                 </div>
             </div>
 
-            <!-- Transaction History Tab -->
             <div id="tab-transaction-history" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Transaction History</h2>
                 <div id="history-loader" class="text-center p-8">
@@ -289,13 +275,11 @@
                     <p class="text-gray-500">Fetching history from database...</p>
                 </div>
                 <div id="transaction-list" class="space-y-4">
-                    <!-- Transactions will be displayed here -->
-                </div>
+                    </div>
             </div>
         </main>
     </div>
 
-    <!-- Firebase SDK Imports -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -311,9 +295,6 @@
 
         // --- GLOBAL CONFIGURATION & SETUP ---
 
-        // Firebase Global Variables (Provided by Canvas are ignored for portability)
-        // You MUST configure your Firebase Project and paste the object below.
-        
         // --- START FIREBASE CONFIGURATION (Paste your details here) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBw3ae2AHnVRPi4KkcF6K257HYC8q_ro0A",
@@ -321,11 +302,10 @@
             projectId: "jpuja-tracker",
             storageBucket: "jpuja-tracker.firebasestorage.app",
             messagingSenderId: "740381845015",
-            appId: "1:740381845015:web:f3f876d5ad0b1d53d11e52",
+            appId: "1:740381845015:web:f3f876d5ad0b1d55d11e52",
             measurementId: "G-HT7LB7BQFH"
         };
         const appId = firebaseConfig.projectId; // Use projectId as a stable appId
-        // The __initial_auth_token is only available in the Canvas environment.
         const initialAuthToken = null; 
         // --- END FIREBASE CONFIGURATION ---
 
@@ -337,13 +317,17 @@
         
         // Holds files selected in the form, including existing ones during modification
         let pendingFiles = []; 
+        
+        // NEW: Holds split objects for the current transaction being added/modified
+        let pendingSplits = [];
+        let currentTotalAmount = 0;
 
         // FIX 1: New Passcode
         const FAMILY_PASSCODE = "jpuja2025!"; 
 
         // Transaction Modes
         const INFLOW_MODES = ['HDFC', 'IDFC', 'Sarmistha']; 
-        const OUTFLOW_MODES = ['Cash', 'UPI HDFC', 'UPI IDFC']; 
+        const OUTFLOW_MODES = ['Cash', 'UPI HDFC', 'UPI IDFC', 'Bank Transfer']; 
 
         const EXPENSE_CATEGORIES = [
             'Bhog- Sweets', 'Bhog- Grocery', 'Bhog- Maru', 'Bhog- Fruits',
@@ -445,7 +429,7 @@
         const initFirebase = async () => {
             try {
                 if (!firebaseConfig.projectId || firebaseConfig.apiKey.includes('PLACEHOLDER')) {
-                     throw new Error("Firebase configuration placeholders not replaced. Please update the firebaseConfig object in the code.");
+                    throw new Error("Firebase configuration placeholders not replaced. Please update the firebaseConfig object in the code.");
                 }
 
                 app = initializeApp(firebaseConfig);
@@ -453,7 +437,6 @@
                 auth = getAuth(app);
 
                 // Authenticate the user
-                // If running outside the Canvas, initialAuthToken is null, and it signs in anonymously
                 if (initialAuthToken) {
                     await signInWithCustomToken(auth, initialAuthToken);
                 } else {
@@ -471,7 +454,7 @@
                         initTransactionForm();
                         renderBudgetInputs(); // Render inputs once categories are defined
                     } else {
-                        // Fallback: If anonymous sign-in failed (shouldn't happen with test mode rules)
+                        // Fallback: If anonymous sign-in failed (shouldn't happen with test rules)
                         userId = crypto.randomUUID();
                         $('display-user-id').textContent = userId;
                         console.warn("Signed in anonymously failed. Using UUID as fallback ID.");
@@ -530,7 +513,7 @@
                 console.log("Error fetching transactions:", error);
                 // Only show modal for actual authentication/permission errors
                 if (error.code !== 'permission-denied') {
-                     showModal("Data Error", `Failed to load transactions: ${error.message}`);
+                    showModal("Data Error", `Failed to load transactions: ${error.message}`);
                 }
             });
 
@@ -555,53 +538,71 @@
             });
         };
 
-        // --- DASHBOARD LOGIC ---
+        // --- DASHBOARD LOGIC (UPDATED FOR NEW METRICS & BACKWARD COMPATIBILITY) ---
 
         const renderDashboard = () => {
             $('dashboard-loader').classList.add('hidden');
-            const totalSpent = allTransactions
-                .filter(t => t.type === 'OUTFLOW')
-                .reduce((sum, t) => sum + t.amount, 0);
 
-            const totalInflow = allTransactions
-                .filter(t => t.type === 'INFLOW')
-                .reduce((sum, t) => sum + t.amount, 0);
+            let totalSpent = 0;
+            let totalInflow = 0;
+            let cashOutflow = 0; 
+            let upiOutflow = 0;
 
-            const netBalance = totalInflow - totalSpent;
+            // Aggregate spending from all transactions and their splits
+            const spendingByCategory = {};
+            const countByCategory = {};
+
+            allTransactions.forEach(t => {
+                if (t.type === 'INFLOW') {
+                    totalInflow += t.amount;
+                } else { // OUTFLOW
+                    totalSpent += t.amount;
+                    if (t.mode === 'Cash') {
+                        cashOutflow += t.amount;
+                    } else {
+                        // Assuming all other OUTFLOW modes are UPI/Bank
+                        upiOutflow += t.amount;
+                    }
+
+                    // --- BACKWARD COMPATIBILITY & SPLIT AGGREGATION ---
+                    const splitsToProcess = (t.splits && t.splits.length > 0)
+                        ? t.splits
+                        // Backward compatibility: If no splits, treat as single split with legacy fields
+                        : (t.category ? [{ category: t.category, amount: t.amount }] : []);
+                    
+                    splitsToProcess.forEach(split => {
+                        const cat = split.category;
+                        const amt = split.amount;
+
+                        spendingByCategory[cat] = (spendingByCategory[cat] || 0) + amt;
+                        countByCategory[cat] = (countByCategory[cat] || 0) + 1;
+                    });
+                }
+            });
+
+            const cashInHand = totalInflow - cashOutflow; 
 
             // Update Summary Cards
             $('total-spent').textContent = `₹${totalSpent.toLocaleString('en-IN')}`;
             $('total-inflow').textContent = `₹${totalInflow.toLocaleString('en-IN')}`;
-            $('net-balance').textContent = `₹${netBalance.toLocaleString('en-IN')}`;
+            $('cash-outflow').textContent = `₹${cashOutflow.toLocaleString('en-IN')}`;
+            $('upi-outflow').textContent = `₹${upiOutflow.toLocaleString('en-IN')}`;
+            $('cash-in-hand').textContent = `₹${cashInHand.toLocaleString('en-IN')}`;
 
-            // Determine balance color
-            $('net-balance').closest('.card').classList.remove('bg-red-50', 'bg-green-50', 'border-blue-500', 'border-red-500', 'border-green-500');
-            $('net-balance').classList.remove('text-blue-600', 'text-red-600', 'text-green-600');
-            
-            if (netBalance >= 0) {
-                $('net-balance').closest('.card').classList.add('bg-green-50', 'border-green-500');
-                $('net-balance').classList.add('text-green-600');
+
+            // Determine Cash in Hand color
+            const cashInHandCard = $('cash-in-hand').closest('.card');
+            cashInHandCard.classList.remove('bg-red-50', 'bg-green-50', 'border-blue-500', 'border-red-500', 'border-green-500');
+            $('cash-in-hand').classList.remove('text-blue-600', 'text-red-600', 'text-green-600');
+
+            if (cashInHand >= 0) {
+                 cashInHandCard.classList.add('bg-green-50', 'border-green-500');
+                 $('cash-in-hand').classList.add('text-green-600');
             } else {
-                 $('net-balance').closest('.card').classList.add('bg-red-50', 'border-red-500');
-                $('net-balance').classList.add('text-red-600');
+                 cashInHandCard.classList.add('bg-red-50', 'border-red-500');
+                 $('cash-in-hand').classList.add('text-red-600');
             }
 
-
-            // Calculate Spending by Category
-            const spendingByCategory = allTransactions
-                .filter(t => t.type === 'OUTFLOW' && t.category)
-                .reduce((acc, t) => {
-                    acc[t.category] = (acc[t.category] || 0) + t.amount;
-                    return acc;
-                }, {});
-
-            // Calculate Transaction Count by Category
-            const countByCategory = allTransactions
-                .filter(t => t.type === 'OUTFLOW' && t.category)
-                .reduce((acc, t) => {
-                    acc[t.category] = (acc[t.category] || 0) + 1;
-                    return acc;
-                }, {});
 
             // Render Budget Progress List
             let budgetHtml = '';
@@ -652,7 +653,7 @@
             let topCategoriesHtml = '';
             if (topCategoriesArray.length > 0) {
                 topCategoriesArray.forEach(([category, count]) => {
-                    const spent = spendingByCategory[category].toLocaleString('en-IN');
+                    const spent = (spendingByCategory[category] || 0).toLocaleString('en-IN');
                     topCategoriesHtml += `
                         <div class="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
                             <span class="font-medium text-gray-700">${category}</span>
@@ -661,12 +662,12 @@
                     `;
                 });
             } else {
-                 topCategoriesHtml = '<p class="text-gray-500 p-2">No outflow transactions recorded yet.</p>';
+                topCategoriesHtml = '<p class="text-gray-500 p-2">No outflow transactions recorded yet.</p>';
             }
             $('top-categories-list').innerHTML = topCategoriesHtml;
         };
 
-        // --- BUDGET PLANNER LOGIC ---
+        // --- BUDGET PLANNER LOGIC (NO CHANGE) ---
 
         const renderBudgetInputs = () => {
             const container = $('budget-form-container');
@@ -745,20 +746,19 @@
             const typeInputs = form.querySelectorAll('input[name="transactionType"]');
             const statusInputs = form.querySelectorAll('input[name="paymentStatus"]');
 
-            // Clear pending files on new form/start of modification
-            pendingFiles = [];
-
-            // Populate Category Select
-            const categorySelect = $('transaction-category');
-            categorySelect.innerHTML = EXPENSE_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
+            // Clear state
+            pendingFiles = []; 
+            pendingSplits = [];
+            currentTotalAmount = 0;
 
             // Set current date/time if adding new
             if (!transactionToModify) {
                 // Clear state from previous transactions
                 $('transaction-id').value = '';
                 $('transaction-narration').value = '';
-                $('transaction-amount').value = '';
-                $('expected-amount').value = '';
+                $('transaction-total-amount').value = '';
+                $('transaction-amount').value = 0; // Reset hidden amount field
+                $('expected-amount').value = ''; // Clear ADVANCE optional field
                 
                 // Reset radio buttons and headers
                 document.querySelector('input[name="transactionType"][value="INFLOW"]').checked = true;
@@ -769,8 +769,7 @@
                 // FIX 2: AUTOFILLED DATE/TIME
                 const now = new Date();
                 const dateStr = now.toISOString().substring(0, 10);
-                // toTimeString().substring(0, 5) extracts HH:MM
-                const timeStr = now.toTimeString().substring(0, 5); 
+                const timeStr = now.toTimeString().substring(0, 5);
                 
                 $('transaction-date').value = dateStr;
                 $('transaction-time').value = timeStr;
@@ -781,6 +780,13 @@
             statusInputs.forEach(input => input.addEventListener('change', updateTransactionFormUI));
             $('open-advance-selector').addEventListener('change', updateDueClearanceSummary);
             $('bill-upload').addEventListener('change', handleNewFileSelection); 
+            
+            // New Split Logic Listeners
+            $('add-split-btn').addEventListener('click', addCategorySplit);
+            $('transaction-total-amount').addEventListener('input', (e) => {
+                currentTotalAmount = parseFloat(e.target.value) || 0;
+                updateCategorySplitTotal(); // Triggers split amount validation
+            });
 
             // Initial UI update (must be called after elements are populated)
             updateTransactionFormUI();
@@ -793,63 +799,207 @@
             // Re-render file list after init/modification to clear any artifacts
             renderFilePreviewList(transactionToModify); 
         };
+        
+        // --- NEW SPLIT LOGIC ---
+        
+        // Renders the dynamic split input rows
+        const renderCategorySplits = () => {
+            const container = $('category-split-container');
+            container.innerHTML = '';
+            
+            pendingSplits.forEach((split, index) => {
+                const status = document.querySelector('input[name="paymentStatus"]:checked').value;
+                const isDue = status === 'DUE';
+
+                const splitElement = document.createElement('div');
+                splitElement.className = 'flex flex-col sm:grid sm:grid-cols-10 gap-2 items-end p-2 bg-white border rounded-lg shadow-sm';
+                splitElement.innerHTML = `
+                    <div class="sm:col-span-6">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+                        <select data-index="${index}" data-field="category" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm">
+                            ${EXPENSE_CATEGORIES.map(c => `<option value="${c}" ${c === split.category ? 'selected' : ''}>${c}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-medium text-gray-500 mb-1">${isDue ? 'Amount to Clear' : 'Split Amount'}</label>
+                        <input type="number" data-index="${index}" data-field="amount" value="${split.amount}" required min="0.01" step="0.01" placeholder="Amount" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm">
+                    </div>
+                    <div class="sm:col-span-1 flex justify-end items-end h-full">
+                        <button type="button" data-index="${index}" class="remove-split-btn p-2 text-red-500 hover:text-red-700 rounded-full" title="Remove Split" ${isDue || pendingSplits.length === 1 ? 'disabled' : ''}>
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(splitElement);
+            });
+
+            // Attach listeners for dynamic updates
+            container.querySelectorAll('select, input').forEach(el => {
+                el.addEventListener('change', handleSplitChange);
+                el.addEventListener('input', handleSplitChange);
+            });
+            container.querySelectorAll('.remove-split-btn').forEach(btn => {
+                btn.addEventListener('click', removeCategorySplit);
+            });
+            
+            updateCategorySplitTotal();
+            lucide.createIcons(); // Re-render icons
+        };
+
+        // Handles updates to the pendingSplits array
+        const handleSplitChange = (e) => {
+            const index = parseInt(e.target.dataset.index);
+            const field = e.target.dataset.field;
+            let value = e.target.value;
+
+            if (field === 'amount') {
+                value = parseFloat(value) || 0;
+            }
+
+            // Only update if the index exists
+            if (pendingSplits[index]) {
+                pendingSplits[index][field] = value;
+            }
+            
+            if (field === 'amount') {
+                updateCategorySplitTotal();
+            }
+        };
+
+        // Updates the display of the total split amount
+        const updateCategorySplitTotal = () => {
+            const totalSplitAmount = pendingSplits.reduce((sum, split) => sum + (parseFloat(split.amount) || 0), 0);
+            const totalInput = parseFloat($('transaction-total-amount').value) || 0;
+            
+            // Check for discrepancy between total amount and split sum
+            const discrepancy = totalInput - totalSplitAmount;
+            
+            let summaryText = `Split Total: ₹${totalSplitAmount.toLocaleString('en-IN')}`;
+            let summaryClass = 'text-green-600';
+
+            if (Math.abs(discrepancy) > 0.001) { // Use float comparison tolerance
+                summaryClass = 'text-red-600 font-bold';
+                summaryText += ` (Diff: ₹${discrepancy.toLocaleString('en-IN')})`;
+            }
+
+            const summarySpan = $('split-summary');
+            summarySpan.textContent = summaryText;
+            summarySpan.className = `text-xs font-normal ${summaryClass}`;
+        };
+
+        // Adds a new split row
+        const addCategorySplit = () => {
+            const status = document.querySelector('input[name="paymentStatus"]:checked').value;
+            if (status === 'DUE' && pendingSplits.length > 0) {
+                 showModal("Validation Error", "A **Due Clearance** transaction is only allowed one split.", false);
+                 return;
+            }
+            
+            // Default values for a new split
+            pendingSplits.push({
+                category: EXPENSE_CATEGORIES[0], // Default to first category
+                amount: 0,
+            });
+            renderCategorySplits();
+        };
+
+        // Removes a split row
+        const removeCategorySplit = (e) => {
+            const index = parseInt(e.currentTarget.dataset.index);
+            if (document.querySelector('input[name="paymentStatus"]:checked').value === 'DUE' || pendingSplits.length === 1) {
+                 showModal("Validation Error", "Cannot remove the only split for this transaction type/state.", false);
+                 return;
+            }
+
+            pendingSplits.splice(index, 1);
+            renderCategorySplits();
+        };
+        
+        // --- END NEW SPLIT LOGIC ---
 
         const updateTransactionFormUI = () => {
             const type = document.querySelector('input[name="transactionType"]:checked').value;
             const outflowFields = $('outflow-fields');
             const modeSelect = $('transaction-mode');
             const modeLabel = $('mode-label');
-            const categorySelect = $('transaction-category');
             const advanceDueFields = $('advance-due-fields');
-            const advanceFields = $('advance-fields');
             const dueSection = $('due-clearance-section');
-            const amountInput = $('transaction-amount');
-            const transactionIdInput = $('transaction-id');
-            const currentTxId = transactionIdInput.value;
+            const advanceFields = $('advance-fields');
+            const totalAmountInput = $('transaction-total-amount'); 
+            const addSplitBtn = $('add-split-btn');
+            const expectedAmountInput = $('expected-amount');
+            const openAdvanceSelector = $('open-advance-selector');
+            const currentTxId = $('transaction-id').value;
 
             // 1. INFLOW/OUTFLOW Toggle
             if (type === 'INFLOW') {
                 outflowFields.classList.add('hidden');
-                categorySelect.required = false;
+                totalAmountInput.placeholder = 'e.g., 5000.00 (Cash Inflow Amount)';
                 modeLabel.textContent = 'Inflow Source/Bank';
                 modeSelect.innerHTML = INFLOW_MODES.map(m => `<option value="${m}">${m}</option>`).join('');
                 advanceDueFields.classList.add('hidden');
-                // Ensure no status is checked if we switch to Inflow
                 document.querySelector('input[name="paymentStatus"][value="FULL"]').checked = true;
-
+                
+                // Clear splits for INFLOW
+                pendingSplits = [];
             } else { // OUTFLOW
                 outflowFields.classList.remove('hidden');
-                categorySelect.required = true;
+                totalAmountInput.placeholder = 'e.g., 5000.00 (Total Bill Amount)';
                 modeLabel.textContent = 'Outflow Transaction Mode';
                 modeSelect.innerHTML = OUTFLOW_MODES.map(m => `<option value="${m}">${m}</option>`).join('');
+                
+                // Ensure at least one split exists on OUTFLOW switch
+                if (pendingSplits.length === 0) {
+                     pendingSplits.push({ category: EXPENSE_CATEGORIES[0], amount: 0 });
+                }
             }
-
+            
             // 2. Payment Status (Only for OUTFLOW)
             if (type === 'OUTFLOW') {
                 const status = document.querySelector('input[name="paymentStatus"]:checked').value;
-
+                
                 if (status === 'FULL') {
                     advanceDueFields.classList.add('hidden');
-                    advanceFields.classList.add('hidden');
                     dueSection.classList.add('hidden');
-                    amountInput.placeholder = 'e.g., 500.50 (Full Amount Paid)';
-                    amountInput.required = true;
-
+                    advanceFields.classList.add('hidden');
+                    addSplitBtn.disabled = false;
+                    expectedAmountInput.required = false;
+                    
+                    openAdvanceSelector.required = false; // Important fix: ensure DUE selector is NOT required
+                    
                 } else if (status === 'ADVANCE') {
                     advanceDueFields.classList.remove('hidden');
-                    advanceFields.classList.remove('hidden');
                     dueSection.classList.add('hidden');
-                    amountInput.placeholder = 'e.g., 50.00 (Advance Paid Amount)';
-                    amountInput.required = true;
+                    advanceFields.classList.remove('hidden'); // Show instruction
+                    addSplitBtn.disabled = false;
+                    expectedAmountInput.required = false; // Optional
+                    
+                    openAdvanceSelector.required = false; // Important fix: ensure DUE selector is NOT required
 
                 } else if (status === 'DUE') {
                     advanceDueFields.classList.remove('hidden');
-                    advanceFields.classList.add('hidden');
                     dueSection.classList.remove('hidden');
-                    amountInput.placeholder = 'e.g., 70.00 (Amount Paid to Clear Due)';
-                    amountInput.required = true;
-                    updateDueSelector(currentTxId); // Update the list of open advances
+                    advanceFields.classList.add('hidden');
+                    addSplitBtn.disabled = true; // Only one split allowed for DUE
+                    expectedAmountInput.required = false;
+
+                    openAdvanceSelector.required = true; // Important fix: DUE selector IS required
+
+                    updateDueSelector(currentTxId);
+                    
+                    // If DUE is selected, ensure only one split exists, or create one with zero values
+                    if (pendingSplits.length > 1) {
+                        pendingSplits = [pendingSplits[0]];
+                        showModal("Note", "Only one split is allowed for a Due Clearance transaction. Multiple splits have been discarded.", false);
+                    } else if (pendingSplits.length === 0) {
+                         pendingSplits.push({ category: EXPENSE_CATEGORIES[0], amount: 0 });
+                    }
                 }
+                renderCategorySplits(); // Re-render to update inputs
+                // Show split button only for outflow
+                addSplitBtn.classList.remove('hidden');
+            } else {
+                 addSplitBtn.classList.add('hidden');
             }
         };
 
@@ -866,10 +1016,11 @@
             } else {
                 selector.disabled = false;
                 validAdvances.forEach(t => {
-                    const expected = t.expectedAmount ? ` (Exp: ₹${t.expectedAmount.toLocaleString('en-IN')})` : '';
+                    const expected = t.expectedAmount > 0 ? ` (Exp: ₹${t.expectedAmount.toLocaleString('en-IN')})` : '';
+                    
                     const option = document.createElement('option');
                     option.value = t.id;
-                    option.textContent = `${t.category} - Paid: ₹${t.amount.toLocaleString('en-IN')}${expected} on ${t.date}`;
+                    option.textContent = `Paid: ₹${t.amount.toLocaleString('en-IN')}${expected} on ${t.date}`;
                     selector.appendChild(option);
                 });
             }
@@ -892,23 +1043,29 @@
 
                     const paidOnlyAdvance = advanceTx.amount;
                     const duePaid = totalPaid - paidOnlyAdvance;
-                    const expected = advanceTx.expectedAmount;
+                    
+                    const expected = advanceTx.expectedAmount || 0;
                     let dueAmountMessage;
 
-                    if (expected) {
+                    if (expected > 0) {
                         const dueAmount = expected - totalPaid;
                         dueAmountMessage = dueAmount > 0 ?
                             `Remaining Due: ₹${dueAmount.toLocaleString('en-IN')}` :
                             `<span class="text-red-600 font-bold">Overpaid/Adjusted: ₹${Math.abs(dueAmount).toLocaleString('en-IN')}</span>`;
                     } else {
-                        dueAmountMessage = `<span class="italic">Expected amount was unknown. Self-declare closure.</span>`;
+                        dueAmountMessage = `<span class="italic">Expected amount was **not** set. Total Paid so far: ₹${totalPaid.toLocaleString('en-IN')}</span>`;
                     }
 
+                    // Display categories involved (Backward compatible check)
+                    const categories = (advanceTx.splits && advanceTx.splits.length > 0) 
+                        ? advanceTx.splits.map(s => s.category).join(', ') 
+                        : (advanceTx.category || 'N/A');
+                        
                     summaryDiv.innerHTML = `
-                        <p class="font-bold text-gray-800">Clearing Due for: ${advanceTx.category}</p>
+                        <p class="font-bold text-gray-800">Advance Categories: ${categories}</p>
                         <p>Advance Paid: ₹${paidOnlyAdvance.toLocaleString('en-IN')}</p>
                         <p>Previous Due Cleared: ₹${duePaid.toLocaleString('en-IN')}</p>
-                        <p>${dueAmountMessage}</p>
+                        <p class="mt-1 font-semibold">${dueAmountMessage}</p>
                     `;
                     summaryDiv.classList.remove('hidden');
                 }
@@ -922,7 +1079,15 @@
 
             // Initialize pendingFiles with existing files
             pendingFiles = tx.files || [];
+            
+            // Initialize pendingSplits with existing splits, handling backward compatibility
+            const txSplits = (tx.splits && tx.splits.length > 0)
+                 ? tx.splits
+                 // Backward compatibility: If no splits but has category/amount, create one split
+                 : (tx.category ? [{ category: tx.category, amount: tx.amount }] : []);
 
+            pendingSplits = JSON.parse(JSON.stringify(txSplits));
+            
             // Set Type
             document.querySelector(`input[name="transactionType"][value="${tx.type}"]`).checked = true;
             updateTransactionFormUI(); // Recalculate mode options
@@ -930,39 +1095,39 @@
             // Set Date/Time/Amount/Narration
             $('transaction-date').value = tx.date;
             $('transaction-time').value = tx.time || '00:00';
-            $('transaction-amount').value = tx.amount;
+            $('transaction-total-amount').value = tx.amount;
+            currentTotalAmount = tx.amount;
             $('transaction-narration').value = tx.narration || '';
             $('transaction-mode').value = tx.mode;
 
             // Set OUTFLOW specific fields
             if (tx.type === 'OUTFLOW') {
-                $('transaction-category').value = tx.category;
-
                 // Set Status
                 document.querySelector(`input[name="paymentStatus"][value="${tx.status}"]`).checked = true;
-                updateTransactionFormUI(); // Recalculate advance/due fields
-
+                
+                // Set Advance specific fields (expected amount is a top-level field for ADVANCE/FULL only)
                 if (tx.status === 'ADVANCE') {
                     $('expected-amount').value = tx.expectedAmount || '';
                 }
 
-                // Note: The DUE status can now be modified but only after re-opening the parent.
+                updateTransactionFormUI(); // Recalculate advance/due fields and render splits
+                
+                // If DUE payment modification, pre-select the parent ADVANCE in the dropdown
+                if (tx.status === 'DUE' && tx.openDueId) {
+                    // Wait for updateDueSelector to populate options, then set value
+                    setTimeout(() => {
+                        $('open-advance-selector').value = tx.openDueId;
+                        updateDueClearanceSummary();
+                    }, 100);    
+                }
             }
-
-            // Render file list after initializing pendingFiles
-            renderFilePreviewList(tx);
             
-            // If this is a DUE payment modification, pre-select the parent ADVANCE in the dropdown
-            if (tx.status === 'DUE' && tx.openDueId) {
-                // Wait for updateDueSelector to populate options, then set value
-                setTimeout(() => {
-                    $('open-advance-selector').value = tx.openDueId;
-                    updateDueClearanceSummary();
-                }, 100); 
-            }
+            // Render file list after initializing pendingFiles
+            renderFilePreviewList(tx); 
         };
         
-        // Handle accumulation of newly selected files
+        // ... (File handling logic remains the same) ...
+
         const handleNewFileSelection = () => {
             const fileInput = $('bill-upload');
             // Add new files (which are File objects) to the pending list
@@ -975,38 +1140,6 @@
             });
             renderFilePreviewList();
             fileInput.value = null; // Clear the input value so the change event fires again
-        };
-
-        // Renders both existing (Base64) and pending (File object) files
-        const renderFilePreviewList = (currentTx = null) => {
-            const previewList = $('file-preview-list');
-            previewList.innerHTML = '';
-            
-            // Only consider files that are not marked for removal (for existing txs)
-            const filesToDisplay = pendingFiles.filter(f => !f.remove);
-
-            // Separate existing (Base64 objects with 'data' property) and new (File objects)
-            const existingFiles = filesToDisplay.filter(f => ! (f instanceof File));
-            const newFiles = filesToDisplay.filter(f => f instanceof File);
-            
-            existingFiles.forEach((file, index) => {
-                previewList.innerHTML += createExistingFilePreview(file.name, index);
-            });
-            
-            newFiles.forEach((file, index) => {
-                previewList.innerHTML += createPendingFilePreview(file.name, index);
-            });
-
-            // Re-attach listeners for removals
-            attachExistingFileRemovalListeners(pendingFiles);
-            attachPendingFileRemovalListeners();
-            
-            // Check max file limit
-            if (filesToDisplay.length > 7) {
-                showModal("File Limit Exceeded", `You have selected ${filesToDisplay.length} files. Please remove at least ${filesToDisplay.length - 7} files.`, false);
-            }
-
-            lucide.createIcons();
         };
 
         const createExistingFilePreview = (fileName, index) => `
@@ -1058,6 +1191,38 @@
             });
         };
 
+        const renderFilePreviewList = (currentTx = null) => {
+            const previewList = $('file-preview-list');
+            previewList.innerHTML = '';
+            
+            // Only consider files that are not marked for removal (for existing txs)
+            const filesToDisplay = pendingFiles.filter(f => !f.remove);
+
+            // Separate existing (Base64 objects with 'data' property) and new (File objects)
+            const existingFiles = filesToDisplay.filter(f => ! (f instanceof File));
+            const newFiles = filesToDisplay.filter(f => f instanceof File);
+            
+            existingFiles.forEach((file, index) => {
+                previewList.innerHTML += createExistingFilePreview(file.name, index);
+            });
+            
+            newFiles.forEach((file, index) => {
+                previewList.innerHTML += createPendingFilePreview(file.name, index);
+            });
+
+            // Re-attach listeners for removals
+            attachExistingFileRemovalListeners(pendingFiles);
+            attachPendingFileRemovalListeners();
+            
+            // Check max file limit
+            if (filesToDisplay.length > 7) {
+                showModal("File Limit Exceeded", `You have selected ${filesToDisplay.length} files. Please remove at least ${filesToDisplay.length - 7} files.`, false);
+            }
+
+            lucide.createIcons();
+        };
+
+
         const handleTransactionSubmit = async (e) => {
             e.preventDefault();
 
@@ -1090,21 +1255,41 @@
             const date = $('transaction-date').value;
             const time = $('transaction-time').value;
             const mode = $('transaction-mode').value;
-            const amount = parseFloat($('transaction-amount').value);
+            const totalAmount = parseFloat($('transaction-total-amount').value);
+            $('transaction-amount').value = totalAmount; 
+
             const narration = $('transaction-narration').value;
 
-            let category = null;
             let status = 'FULL';
-            let expectedAmount = null;
-            let openDueId = null; // Only for DUE transactions
+            let openDueId = null; 
+            let finalSplits = null;
+            let expectedAmount = null; 
 
             if (type === 'OUTFLOW') {
-                category = $('transaction-category').value;
                 status = document.querySelector('input[name="paymentStatus"]:checked').value;
+                
+                // Get splits (no expected amount per split)
+                finalSplits = pendingSplits.map(s => ({ 
+                    category: s.category, 
+                    amount: parseFloat(s.amount) || 0,
+                }));
 
+                // Validation: Split amounts must sum to totalAmount
+                const totalSplitAmount = finalSplits.reduce((sum, s) => sum + s.amount, 0);
+                if (Math.abs(totalSplitAmount - totalAmount) > 0.001) { // Floating point check
+                    await showModal("Validation Error", `The sum of split amounts (₹${totalSplitAmount.toLocaleString('en-IN')}) does not match the Total Transaction Amount (₹${totalAmount.toLocaleString('en-IN')}). Please correct the splits.`, false);
+                    buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                    spinner.classList.add('hidden');
+                    button.disabled = false;
+                    return;
+                }
+                
+                // Get transaction-level expected amount if it's an ADVANCE
                 if (status === 'ADVANCE') {
                     expectedAmount = parseFloat($('expected-amount').value) || null;
-                } else if (status === 'DUE') {
+                }
+
+                if (status === 'DUE') {
                     openDueId = $('open-advance-selector').value;
                     if (!openDueId) {
                         await showModal("Validation Error", "Please select an **Open Advance Transaction** to clear a due amount.", false);
@@ -1114,18 +1299,23 @@
                         return;
                     }
                 }
+                
+                // Store null if no splits remain (should only happen for INFLOW/Error)
+                if (finalSplits.length === 0) finalSplits = null;
+            } else {
+                status = 'FULL';
             }
             
             // 2. Process Files (using pendingFiles array)
-            const filesToKeep = pendingFiles.filter(f => !f.remove && ! (f instanceof File)); // Existing files (Base64 objects)
-            const filesToUpload = pendingFiles.filter(f => f instanceof File); // New files (File objects)
+            const filesToKeep = pendingFiles.filter(f => !f.remove && ! (f instanceof File)); 
+            const filesToUpload = pendingFiles.filter(f => f instanceof File); 
 
             if (filesToKeep.length + filesToUpload.length > 7) {
                  await showModal("Validation Error", `The total number of files exceeds the maximum limit of 7. Please remove files before saving.`, false);
-                buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
-                spinner.classList.add('hidden');
-                button.disabled = false;
-                return;
+                 buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
+                 spinner.classList.add('hidden');
+                 button.disabled = false;
+                 return;
             }
 
             let newFiles = [];
@@ -1143,48 +1333,48 @@
             const finalFiles = filesToKeep.concat(newFiles);
 
             // 3. Prepare Transaction Data
-            let isClosedStatus = type === 'INFLOW' || status === 'FULL'; // Default closure status for standard FULL or INFLOW
+            let isClosedStatus = type === 'INFLOW' || status === 'FULL'; 
 
             const transactionData = {
                 date: date,
                 time: time,
                 type: type,
                 mode: mode,
-                category: category,
-                amount: amount,
+                amount: totalAmount, 
                 narration: narration,
                 files: finalFiles,
-                status: type === 'INFLOW' ? 'FULL' : status, // Inflows are always FULL
-                expectedAmount: type === 'INFLOW' ? null : expectedAmount,
+                status: status, 
                 openDueId: type === 'INFLOW' ? null : openDueId,
-                isClosed: isClosedStatus, // Will be overridden for ADVANCE/DUE status
+                isClosed: isClosedStatus, 
+                splits: finalSplits,
+                // Only store expectedAmount if it's an ADVANCE
+                expectedAmount: status === 'ADVANCE' ? expectedAmount : null, 
                 modifiedAt: isModification ? new Date().toISOString() : null
             };
 
             // Set isClosed status for ADVANCE/DUE
             if (status === 'ADVANCE') {
-                 transactionData.isClosed = false; // Always open initially
+                 transactionData.isClosed = false; 
             } else if (status === 'DUE') {
-                 transactionData.isClosed = true; // DUE transaction itself is closed (represents a single payment event)
+                 transactionData.isClosed = true; 
             }
 
 
             // Precautionary prompt for ADVANCE modification
             if (status === 'ADVANCE' && isModification) {
-                const amountChanged = currentTx.amount !== amount;
+                // Check if the amount or the expectedAmount changed
+                const amountChanged = currentTx.amount !== totalAmount;
                 const expectedChanged = currentTx.expectedAmount !== expectedAmount;
+                const splitsChanged = JSON.stringify(currentTx.splits) !== JSON.stringify(transactionData.splits);
 
-                if (amountChanged || expectedChanged) {
+                if (amountChanged || expectedChanged || splitsChanged) {
                     const keepOpen = await showModal(
                         "Advance Transaction Modified",
-                        `You have changed key values (paid amount or expected amount). Do you want to keep this advance **OPEN** for future due payments? (Click **Yes, Proceed** to close it now, or **Cancel** to keep it open)`,
+                        `Key values (paid amount/expected amount/splits) have changed. Do you want to keep this advance **OPEN** for future due payments? (Click **Yes, Proceed** to close it now, or **Cancel** to keep it open)`,
                         true 
                     );
-                    // If user clicks "Yes, Proceed" (confirm), they want to CLOSE it (isClosed = true).
-                    // If user clicks "Cancel", they want to keep it OPEN (isClosed = false).
-                    transactionData.isClosed = !keepOpen; // Logic inverted for clarity
+                    transactionData.isClosed = !keepOpen; 
                 } else {
-                    // If no key values changed, retain existing closed status
                     transactionData.isClosed = currentTx.isClosed;
                 }
             }
@@ -1203,37 +1393,42 @@
 
                         const advanceTx = advanceDoc.data();
 
-                        // We must find ALL *other* related payments (including advance and other due payments)
+                        // Find ALL related payments, excluding the transaction currently being saved/modified
                         const allRelated = allTransactions.filter(tx => 
                             (tx.id === advanceTx.id) || (tx.openDueId === advanceTx.id)
                         );
                         
-                        // Exclude the current transaction being modified (if it's a modification)
                         const totalPaidExcludingThisTx = allRelated
                             .filter(tx => tx.id !== txId)
                             .reduce((sum, tx) => sum + tx.amount, 0);
-                            
-                        const newTotalPaid = totalPaidExcludingThisTx + amount;
-
-                        // 2. Determine if the advance transaction should be closed
+                                
+                        const newTotalPaid = totalPaidExcludingThisTx + totalAmount; 
+                        
+                        // Get transaction-level expected amount (handling backward compatibility)
+                        const totalExpectedAmount = advanceTx.expectedAmount || 0;
+                        
                         let shouldCloseAdvance = false;
+                        let promptClosure = false;
+                        let closureMessage = '';
 
-                        if (advanceTx.expectedAmount) {
-                            // Case 1: Full price is known
-                            if (newTotalPaid >= advanceTx.expectedAmount) {
-                                // Close if paid in full or overpaid
-                                shouldCloseAdvance = true;
-                                await showModal("Due Cleared!", `The total payment (₹${newTotalPaid.toLocaleString('en-IN')}) now covers the expected amount (₹${advanceTx.expectedAmount.toLocaleString('en-IN')}). The advance transaction will be closed.`, false);
-                            } else {
-                                // Still partial payment
-                                const confirmInstallment = await showModal("Installment Payment?", `The due is not fully cleared yet (Remaining due: ₹${(advanceTx.expectedAmount - newTotalPaid).toLocaleString('en-IN')}). Do you want to close the original advance transaction anyway?`, true);
-                                shouldCloseAdvance = confirmInstallment;
-                            }
-
+                        if (totalExpectedAmount > 0) {
+                            if (newTotalPaid >= totalExpectedAmount) {
+                                promptClosure = true;
+                                closureMessage = newTotalPaid > totalExpectedAmount 
+                                    ? `Total payment (₹${newTotalPaid.toLocaleString('en-IN')}) **exceeds** the expected amount (₹${totalExpectedAmount.toLocaleString('en-IN')}). Do you want to **CLOSE** the advance now?`
+                                    : `Total payment now meets the expected amount. Do you want to **CLOSE** the advance now?`;
+                            } 
                         } else {
-                            // Case 2: Full price is not known
-                            const confirmClose = await showModal("Close Advance?", "The full price was not known. Do you confirm that this payment clears the due and the original advance transaction should be closed?", true);
-                            shouldCloseAdvance = confirmClose;
+                            // Expected amount is not known, always prompt user for closure when DUE is paid
+                            promptClosure = true;
+                            closureMessage = `The expected full amount was unknown. Total paid is now ₹${newTotalPaid.toLocaleString('en-IN')}. Do you confirm that this clears the due and you want to **CLOSE** the advance transaction now?`;
+                        }
+                        
+                        if (promptClosure) {
+                            shouldCloseAdvance = await showModal("Confirm Advance Closure", closureMessage, true);
+                        } else {
+                            // If expected amount is known and not yet reached, keep it open
+                            shouldCloseAdvance = false;
                         }
 
                         // 3. Update the original advance transaction
@@ -1243,7 +1438,7 @@
                         t.set(transactionRef, transactionData);
                     });
 
-                    await showModal("Due Clearance Recorded!", `Due payment of ₹${amount.toLocaleString('en-IN')} recorded against advance ID ${openDueId.substring(0, 8)}.`, false);
+                    await showModal("Due Clearance Recorded!", `Due payment of ₹${totalAmount.toLocaleString('en-IN')} recorded against advance ID ${openDueId.substring(0, 8)}.`, false);
 
                 } catch (error) {
                     console.error("Firestore Transaction Error:", error);
@@ -1257,7 +1452,14 @@
             } else {
                 // Handle standard FULL or ADVANCE transaction (or INFLOW)
                 try {
-                    await setDoc(transactionRef, transactionData);
+                    // When saving, explicitly remove the old single category/expectedAmount fields 
+                    // if they exist on an old transaction being modified, ensuring it uses the new 'splits' model.
+                    const updateFields = {...transactionData};
+                    if (updateFields.category !== undefined) delete updateFields.category;
+                    // If status is ADVANCE, expectedAmount is in updateFields. 
+                    if (updateFields.expectedAmount !== undefined && updateFields.status !== 'ADVANCE') delete updateFields.expectedAmount;
+                    
+                    await setDoc(transactionRef, updateFields);
                     await showModal("Success!", `Transaction recorded successfully. ID: ${transactionRef.id.substring(0, 8)}...`, false);
                 } catch (error) {
                     console.error("Firestore Save Error:", error);
@@ -1279,7 +1481,7 @@
             button.disabled = false;
         };
 
-        // --- TRANSACTION HISTORY LOGIC ---
+        // --- TRANSACTION HISTORY LOGIC (UPDATED FOR BACKWARD COMPATIBILITY) ---
 
         const renderTransactionHistory = () => {
             $('history-loader').classList.add('hidden');
@@ -1294,21 +1496,42 @@
             allTransactions.forEach(tx => {
                 const isOutflow = tx.type === 'OUTFLOW';
                 const isDue = tx.status === 'DUE'; 
+                
+                // --- BACKWARD COMPATIBILITY & SPLIT PROCESSING ---
+                const splitsToDisplay = (tx.splits && tx.splits.length > 0)
+                    ? tx.splits
+                    // Backward compatibility: If no splits but has category/amount, create one split
+                    : (tx.category ? [{ category: tx.category, amount: tx.amount }] : null);
+
 
                 const statusColor = tx.status === 'FULL' ? 'bg-green-100 text-green-800' :
-                                       tx.status === 'ADVANCE' && !tx.isClosed ? 'bg-yellow-100 text-yellow-800' :
-                                       tx.status === 'ADVANCE' && tx.isClosed ? 'bg-gray-100 text-gray-600' :
-                                       tx.status === 'DUE' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800';
+                                         tx.status === 'ADVANCE' && !tx.isClosed ? 'bg-yellow-100 text-yellow-800' :
+                                         tx.status === 'ADVANCE' && tx.isClosed ? 'bg-gray-100 text-gray-600' :
+                                         tx.status === 'DUE' ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-800';
                 const typeColor = isOutflow ? 'text-red-600' : 'text-green-600';
                 const icon = isOutflow ? 'arrow-down' : 'arrow-up';
 
                 let details = '';
+                let splitDetailsHtml = '';
+                
                 if (isOutflow) {
-                    details += `<p class="text-xs text-gray-500 mt-1">${tx.category} - Via ${tx.mode}</p>`;
+                    details += `<p class="text-xs text-gray-500 mt-1">Via ${tx.mode}</p>`;
+                    
+                    if (splitsToDisplay && splitsToDisplay.length > 0) {
+                        splitDetailsHtml = splitsToDisplay.map(split => {
+                            return `<span class="inline-block text-xs text-gray-700 mt-1 mr-2 px-2 py-0.5 bg-gray-100 rounded-full">${split.category}: ₹${split.amount.toLocaleString('en-IN')}</span>`;
+                        }).join('');
+                        details += `<div class="mt-1">${splitDetailsHtml}</div>`;
+                    } else {
+                        // This case should ideally only happen if old data is missing both splits and category
+                        details += `<p class="text-xs text-red-500 mt-1">No category info.</p>`;
+                    }
+
                     if (tx.status === 'ADVANCE') {
-                        details += `<p class="text-xs text-yellow-700 font-medium">Advance. Exp: ₹${tx.expectedAmount ? tx.expectedAmount.toLocaleString('en-IN') : '?'}${tx.isClosed ? ' (CLOSED)' : ' (OPEN)'}</p>`;
+                        const expected = tx.expectedAmount > 0 ? ` (Exp: ₹${tx.expectedAmount.toLocaleString('en-IN')})` : '';
+                        details += `<p class="text-xs text-yellow-700 font-medium mt-1">Advance. Total Paid: ₹${tx.amount.toLocaleString('en-IN')}${expected}${tx.isClosed ? ' (CLOSED)' : ' (OPEN)'}</p>`;
                     } else if (tx.status === 'DUE') {
-                        details += `<p class="text-xs text-blue-700 font-medium">Due Clearance (Ref: ${tx.openDueId ? tx.openDueId.substring(0, 8) : '?'})</p>`;
+                        details += `<p class="text-xs text-blue-700 font-medium mt-1">Due Clearance (Ref: ${tx.openDueId ? tx.openDueId.substring(0, 8) : '?'})</p>`;
                     }
                 } else {
                     details += `<p class="text-xs text-gray-500 mt-1">Via ${tx.mode}</p>`;
@@ -1321,7 +1544,7 @@
                     if (isBase64) {
                         fileButtons += `
                             <a href="${file.data}" download="${file.name}"
-                               class="text-xs inline-flex items-center text-blue-600 hover:text-blue-800 border border-blue-300 rounded-full px-2 py-1 transition duration-150">
+                                class="text-xs inline-flex items-center text-blue-600 hover:text-blue-800 border border-blue-300 rounded-full px-2 py-1 transition duration-150">
                                 <i data-lucide="download" class="w-3 h-3 mr-1"></i> ${file.name}
                             </a>
                         `;
@@ -1339,7 +1562,6 @@
                 item.className = 'card p-4 border border-gray-200';
                 item.innerHTML = `
                     <div class="flex justify-between items-start">
-                        <!-- Left: Info -->
                         <div class="flex-1 min-w-0 pr-4">
                             <div class="flex items-center space-x-2">
                                 <i data-lucide="${icon}" class="w-5 h-5 ${typeColor}"></i>
@@ -1351,7 +1573,6 @@
                             <p class="text-xs text-gray-400 mt-1">${tx.date} at ${tx.time || '00:00'}</p>
                         </div>
 
-                        <!-- Right: Actions -->
                         <div class="flex space-x-2 flex-shrink-0">
                             <button data-id="${tx.id}" class="modify-btn p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition duration-150" title="Modify">
                                 <i data-lucide="edit" class="w-4 h-4"></i>
@@ -1391,9 +1612,9 @@
                         await setDoc(doc(getTransactionCollectionRef(), tx.openDueId), { isClosed: false }, { merge: true });
                         console.log(`Parent Advance ${tx.openDueId} temporarily re-opened for DUE modification.`);
                     } catch(error) {
-                         console.error("Failed to reopen parent advance:", error);
-                         await showModal("Error", "Failed to prepare parent advance for modification. Please try deleting the DUE transaction instead.", false);
-                         return;
+                          console.error("Failed to reopen parent advance:", error);
+                          await showModal("Error", "Failed to prepare parent advance for modification. Please try deleting the DUE transaction instead.", false);
+                          return;
                     }
                 }
                 
@@ -1408,7 +1629,8 @@
                 const tx = allTransactions.find(t => t.id === txId);
 
                 if (tx.status === 'ADVANCE' && !tx.isClosed) {
-                    const confirmDelete = await showModal("Warning!", `This is an **OPEN ADVANCE** transaction for **${tx.category}** (₹${tx.amount.toLocaleString('en-IN')}). Deleting it might break the record keeping if it has related DUE payments. Are you sure you want to delete it?`, true);
+                    const categories = (tx.splits && tx.splits.length > 0) ? tx.splits.map(s => s.category).join(', ') : (tx.category || 'N/A');
+                    const confirmDelete = await showModal("Warning!", `This is an **OPEN ADVANCE** transaction for **${categories}** (₹${tx.amount.toLocaleString('en-IN')}). Deleting it might break the record keeping if it has related DUE payments. Are you sure you want to delete it?`, true);
                     if (!confirmDelete) return;
                 }
                 if (tx.status === 'DUE') {
@@ -1442,10 +1664,13 @@
                             );
                             const newTotalPaid = allRelatedPayments.reduce((sum, tx) => sum + tx.amount, 0);
 
+                            // Get transaction-level expected amount (handling backward compatibility)
+                            const totalExpectedAmount = advanceTx.expectedAmount || 0;
+                            
                             let shouldReOpen = false;
-                            if (advanceTx.expectedAmount) {
+                            if (totalExpectedAmount > 0) {
                                 // Re-open if deleting this payment drops the total paid below expected amount
-                                shouldReOpen = newTotalPaid < advanceTx.expectedAmount;
+                                shouldReOpen = newTotalPaid < totalExpectedAmount;
                             } else if (advanceTx.isClosed) {
                                 // If unknown amount, and the advance was closed, always re-open 
                                 // because the user is deleting the payment that closed it.
@@ -1540,11 +1765,10 @@
 
             // If the main app is visible (due to auto-login), ensure Firebase is initialized
             if (!$('main-app').classList.contains('hidden') && !app) {
-                 initFirebase();
+                initFirebase();
             }
         });
 
     </script>
 </body>
 </html>
-
