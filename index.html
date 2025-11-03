@@ -129,7 +129,7 @@
                     </div>
 
                     <div>
-                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Top Spending Categories (Count)</h3>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Category Wise Spending (Count)</h3>
                         <div class="card p-4">
                             <div id="top-categories-list" class="space-y-2">
                                 <p class="text-gray-500">No transactions recorded yet.</p>
@@ -647,8 +647,7 @@
 
             // Render Top Categories List (by count)
             const topCategoriesArray = Object.entries(countByCategory)
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 5);
+                .sort(([, a], [, b]) => b - a);
 
             let topCategoriesHtml = '';
             if (topCategoriesArray.length > 0) {
@@ -1772,3 +1771,4 @@
     </script>
 </body>
 </html>
+
