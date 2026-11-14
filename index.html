@@ -97,12 +97,13 @@
                     <button id="logout-button" class="text-xs px-2 py-1 border border-gray-300 rounded-md text-gray-600 hover:bg-gray-100">Log out</button>
                 </div>
             </div>
-            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-4 border-t border-gray-200">
+            <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-4 border-t border-gray-200 overflow-x-auto whitespace-nowrap">
                 <button data-tab="dashboard" class="tab-button px-3 py-3 sm:px-5 text-gray-500 active">Dashboard</button>
                 <button data-tab="budget-planner" class="tab-button px-3 py-3 sm:px-5 text-gray-500">Budget Planner</button>
                 <button data-tab="add-transaction" class="tab-button px-3 py-3 sm:px-5 text-gray-500">Add Transaction</button>
                 <button data-tab="transaction-history" class="tab-button px-3 py-3 sm:px-5 text-gray-500">History</button>
                 <button data-tab="data-export" class="tab-button px-3 py-3 sm:px-5 text-gray-500">Data Export</button>
+                <button data-tab="last-year" class="tab-button px-3 py-3 sm:px-5 text-gray-500">Last Year</button>
             </nav>
         </header>
 
@@ -315,6 +316,65 @@
                 </div>
             </div>
             
+            <!-- Last Year (read-only comparison) Tab -->
+            <div id="tab-last-year" class="tab-content hidden">
+                <h2 class="text-3xl font-bold text-gray-800 mb-1">Last Year: Puja 2025</h2>
+                <p class="text-gray-500 mb-6">Read-only summary of last year's expenses, for comparing with this year. Nothing here can be edited.</p>
+
+                <div id="ly-loader" class="text-center p-8">
+                    <i data-lucide="loader-2" class="w-8 h-8 text-red-600 animate-spin mx-auto"></i>
+                    <p class="text-gray-500 mt-2">Loading last year's figures...</p>
+                </div>
+                <div id="ly-error" class="card p-6 hidden"></div>
+
+                <div id="ly-content" class="hidden space-y-8">
+                    <!-- Totals -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="card p-5 border-l-4 border-gray-500">
+                            <p class="text-sm font-medium text-gray-500">Total Expense 2025</p>
+                            <p id="ly-total-2025" class="mt-1 text-3xl font-semibold text-gray-800">₹0</p>
+                            <p id="ly-count-2025" class="text-xs text-gray-500 mt-1"></p>
+                        </div>
+                        <div class="card p-5 border-l-4 border-red-500 bg-red-50">
+                            <p class="text-sm font-medium text-gray-500">This Year So Far</p>
+                            <p id="ly-total-now" class="mt-1 text-3xl font-semibold text-red-600">₹0</p>
+                        </div>
+                        <div class="card p-5 border-l-4 border-blue-500 bg-blue-50">
+                            <p class="text-sm font-medium text-gray-500">Difference</p>
+                            <p id="ly-total-diff" class="mt-1 text-3xl font-semibold text-blue-600">₹0</p>
+                            <p class="text-xs text-gray-500 mt-1">This year minus last year</p>
+                        </div>
+                    </div>
+
+                    <!-- Category-wise -->
+                    <div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-4">Category-wise Expense</h3>
+                        <div class="card overflow-x-auto">
+                            <table class="min-w-full text-sm">
+                                <thead class="bg-gray-50 text-gray-600 text-left">
+                                    <tr>
+                                        <th class="px-4 py-3 font-semibold">Category</th>
+                                        <th class="px-4 py-3 font-semibold text-right">2025</th>
+                                        <th class="px-4 py-3 font-semibold text-right">This year so far</th>
+                                        <th class="px-4 py-3 font-semibold text-right">Difference</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ly-category-body" class="divide-y divide-gray-100"></tbody>
+                                <tfoot id="ly-category-foot" class="bg-gray-50 font-bold"></tfoot>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Item-wise -->
+                    <div>
+                        <h3 class="text-2xl font-semibold text-gray-800 mb-1">Item-wise Expense (2025)</h3>
+                        <p class="text-sm text-gray-500 mb-4">Every expense of last year, by category. An advance and the dues paid against it are shown together as one item.</p>
+                        <input type="search" id="ly-search" class="w-full sm:w-80 p-2 border border-gray-300 rounded-lg mb-4 focus:ring-red-500 focus:border-red-500" placeholder="Search items, e.g. dhaki, pratima">
+                        <div id="ly-items" class="space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Data Export Tab -->
             <div id="tab-data-export" class="tab-content hidden">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6">Data Export Query</h2>
@@ -721,6 +781,7 @@
                 renderDashboard();
                 renderTransactionHistory();
                 updateDueSelector();
+                if (lastYearTransactions && !$('tab-last-year').classList.contains('hidden')) renderLastYear();
             }, (error) => {
                 console.error("Error fetching transactions:", error);
                 handleLoadError(error, 'transactions');
@@ -1597,6 +1658,251 @@
         };
 
 
+
+        // --- LAST YEAR (2025) READ-ONLY SUMMARY ---
+        // Last year's entries live in the old browser-based account. The Firestore rules allow
+        // only the family login to READ them (never write), so 2025 stays untouched.
+        // The ID is listed twice because "I" and "l" look identical in the Firebase console.
+        const LAST_YEAR = 2025;
+        const LAST_YEAR_UIDS = ['UFTfgZAWHpYfyIyrzZFbJwmFj9n1', 'UFTfgZAWHpYfylyrzZFbJwmFj9n1'];
+        let lastYearTransactions = null; // loaded once, the first time the tab is opened
+        let lastYearLoading = false;
+
+        const inr = (n) => `₹${(parseFloat(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+        const escapeHtml = (str) => String(str ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const formatDate = (d) => {
+            if (!d) return '';
+            const dt = new Date(d + 'T00:00:00');
+            return isNaN(dt) ? d : dt.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        };
+        const getSplits = (t) => (t.splits && t.splits.length > 0)
+            ? t.splits
+            : (t.category ? [{ category: t.category, amount: t.amount }] : [{ category: 'Uncategorised', amount: t.amount }]);
+
+        // Total spent per category (same method as the Dashboard)
+        const spendingByCategoryFor = (transactions) => {
+            const totals = {};
+            transactions.filter(t => t.type === 'OUTFLOW').forEach(t => {
+                getSplits(t).forEach(s => {
+                    totals[s.category] = (totals[s.category] || 0) + (parseFloat(s.amount) || 0);
+                });
+            });
+            return totals;
+        };
+
+        // Group an advance with all the dues paid against it into one "item"
+        const buildLastYearItems = (transactions) => {
+            const outflows = transactions.filter(t => t.type === 'OUTFLOW');
+            const byId = Object.fromEntries(outflows.map(t => [t.id, t]));
+            const items = [];
+            const used = new Set();
+
+            outflows.filter(t => t.status === 'ADVANCE').forEach(adv => {
+                const dues = outflows
+                    .filter(t => t.status === 'DUE' && t.openDueId === adv.id)
+                    .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+                const payments = [adv, ...dues];
+                payments.forEach(p => used.add(p.id));
+                items.push({ kind: 'chain', advance: adv, payments });
+            });
+
+            outflows.filter(t => !used.has(t.id)).forEach(t => {
+                // A due whose advance is missing still shows up, on its own
+                items.push({ kind: t.status === 'DUE' && !byId[t.openDueId] ? 'orphan-due' : 'single', payments: [t] });
+            });
+
+            items.forEach(item => {
+                item.total = item.payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+                const first = item.payments[0];
+                item.title = (first.narration || '').trim() || getSplits(first).map(s => s.category).join(', ');
+                item.byCategory = {};
+                item.payments.forEach(p => getSplits(p).forEach(s => {
+                    item.byCategory[s.category] = (item.byCategory[s.category] || 0) + (parseFloat(s.amount) || 0);
+                }));
+                item.searchText = item.payments
+                    .map(p => `${p.narration || ''} ${getSplits(p).map(s => s.category).join(' ')} ${p.mode || ''}`)
+                    .join(' ').toLowerCase();
+            });
+            return items;
+        };
+
+        const renderLastYearItem = (item, category) => {
+            const partAmount = item.byCategory[category];
+            const isPart = Object.keys(item.byCategory).length > 1;
+            let details = '';
+
+            if (item.kind === 'chain') {
+                const adv = item.advance;
+                const lines = item.payments.map((p, i) => `
+                    <li class="flex justify-between gap-4">
+                        <span>${i === 0 ? 'Advance' : `Due ${item.payments.length > 2 ? i : ''}`.trim()} · ${formatDate(p.date)} · ${escapeHtml(p.mode || '')}${i > 0 && p.narration ? ` · <span class="italic">${escapeHtml(p.narration)}</span>` : ''}</span>
+                        <span class="font-medium">${inr(p.amount)}</span>
+                    </li>`).join('');
+                let statusLine = '';
+                const expected = parseFloat(adv.expectedAmount) || 0;
+                if (expected > 0) {
+                    const left = expected - item.total;
+                    statusLine = left > 0
+                        ? `<p class="text-xs text-orange-600 mt-1">Agreed amount ${inr(expected)}. ${inr(left)} was not recorded as paid.</p>`
+                        : `<p class="text-xs text-green-700 mt-1">Agreed amount ${inr(expected)}${left < 0 ? `, paid ${inr(-left)} extra` : ', fully paid'}.</p>`;
+                } else if (!adv.isClosed) {
+                    statusLine = `<p class="text-xs text-orange-600 mt-1">Advance was still open at the end.</p>`;
+                }
+                details = `<ul class="text-xs text-gray-600 mt-2 space-y-0.5 border-l-2 border-yellow-300 pl-3">${lines}</ul>${statusLine}`;
+            } else {
+                const p = item.payments[0];
+                details = `<p class="text-xs text-gray-500 mt-1">${formatDate(p.date)} · ${escapeHtml(p.mode || '')}${item.kind === 'orphan-due' ? ' · Due payment' : ''}</p>`;
+            }
+
+            const otherCats = isPart
+                ? `<p class="text-xs text-gray-500 mt-1">Part of a ${inr(item.total)} bill, also counted under: ${Object.keys(item.byCategory).filter(c => c !== category).map(escapeHtml).join(', ')}</p>`
+                : '';
+
+            return `
+                <div class="ly-item py-3 border-b border-gray-100 last:border-0" data-search="${escapeHtml(item.searchText)}">
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="min-w-0">
+                            <p class="font-medium text-gray-800">${escapeHtml(item.title)}
+                                ${item.kind === 'chain' ? `<span class="ml-1 text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800 align-middle">${item.payments.length === 1 ? 'Advance only' : `Advance + ${item.payments.length - 1} due${item.payments.length - 1 === 1 ? '' : 's'}`}</span>` : ''}
+                            </p>
+                            ${details}
+                            ${otherCats}
+                        </div>
+                        <span class="font-semibold text-gray-800 whitespace-nowrap">${inr(partAmount)}</span>
+                    </div>
+                </div>`;
+        };
+
+        const renderLastYear = () => {
+            const lastYear = lastYearTransactions || [];
+            const lyOutflows = lastYear.filter(t => t.type === 'OUTFLOW');
+            const lyTotal = lyOutflows.reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+            const nowTotal = allTransactions.filter(t => t.type === 'OUTFLOW').reduce((sum, t) => sum + (parseFloat(t.amount) || 0), 0);
+            const diff = nowTotal - lyTotal;
+
+            $('ly-total-2025').textContent = inr(lyTotal);
+            $('ly-count-2025').textContent = `${lyOutflows.length} payment entries`;
+            $('ly-total-now').textContent = inr(nowTotal);
+            $('ly-total-diff').textContent = `${diff > 0 ? '+' : diff < 0 ? '−' : ''}${inr(Math.abs(diff))}`;
+
+            // Category comparison
+            const lyCats = spendingByCategoryFor(lastYear);
+            const nowCats = spendingByCategoryFor(allTransactions);
+            const categories = [...new Set([...Object.keys(lyCats), ...Object.keys(nowCats)])]
+                .sort((a, b) => (lyCats[b] || 0) - (lyCats[a] || 0) || (nowCats[b] || 0) - (nowCats[a] || 0));
+
+            const diffCell = (d) => {
+                if (Math.round(d) === 0) return '<span class="text-gray-400">–</span>';
+                return d > 0
+                    ? `<span class="text-red-600">+${inr(d)}</span>`
+                    : `<span class="text-green-600">−${inr(-d)}</span>`;
+            };
+
+            $('ly-category-body').innerHTML = categories.length === 0
+                ? '<tr><td colspan="4" class="px-4 py-4 text-gray-500">No expenses found.</td></tr>'
+                : categories.map(cat => `
+                    <tr>
+                        <td class="px-4 py-2 text-gray-700">${escapeHtml(cat)}</td>
+                        <td class="px-4 py-2 text-right font-medium">${lyCats[cat] ? inr(lyCats[cat]) : '<span class="text-gray-400">–</span>'}</td>
+                        <td class="px-4 py-2 text-right">${nowCats[cat] ? inr(nowCats[cat]) : '<span class="text-gray-400">–</span>'}</td>
+                        <td class="px-4 py-2 text-right">${diffCell((nowCats[cat] || 0) - (lyCats[cat] || 0))}</td>
+                    </tr>`).join('');
+            const lyCatSum = Object.values(lyCats).reduce((a, b) => a + b, 0);
+            const nowCatSum = Object.values(nowCats).reduce((a, b) => a + b, 0);
+            $('ly-category-foot').innerHTML = `
+                <tr>
+                    <td class="px-4 py-3">TOTAL</td>
+                    <td class="px-4 py-3 text-right">${inr(lyCatSum)}</td>
+                    <td class="px-4 py-3 text-right">${inr(nowCatSum)}</td>
+                    <td class="px-4 py-3 text-right">${diffCell(nowCatSum - lyCatSum)}</td>
+                </tr>`;
+
+            // Item-wise, grouped by category (an item split across categories appears under each, with its part)
+            const items = buildLastYearItems(lastYear);
+            const lyCategoryOrder = Object.keys(lyCats).sort((a, b) => lyCats[b] - lyCats[a]);
+            $('ly-items').innerHTML = lyCategoryOrder.length === 0
+                ? '<p class="text-gray-500">No expenses recorded last year.</p>'
+                : lyCategoryOrder.map(cat => {
+                    const catItems = items.filter(i => i.byCategory[cat]).sort((a, b) => b.byCategory[cat] - a.byCategory[cat]);
+                    return `
+                        <details class="ly-category card p-4" open>
+                            <summary class="flex justify-between items-center cursor-pointer select-none">
+                                <span class="font-semibold text-gray-800">${escapeHtml(cat)} <span class="text-xs font-normal text-gray-500">(${catItems.length} item${catItems.length === 1 ? '' : 's'})</span></span>
+                                <span class="font-bold text-gray-800">${inr(lyCats[cat])}</span>
+                            </summary>
+                            <div class="mt-2">${catItems.map(i => renderLastYearItem(i, cat)).join('')}</div>
+                        </details>`;
+                }).join('');
+            filterLastYearItems();
+        };
+
+        const filterLastYearItems = () => {
+            const q = $('ly-search').value.trim().toLowerCase();
+            document.querySelectorAll('#ly-items .ly-category').forEach(group => {
+                let visible = 0;
+                group.querySelectorAll('.ly-item').forEach(el => {
+                    const show = !q || el.dataset.search.includes(q) || group.querySelector('summary').textContent.toLowerCase().includes(q);
+                    el.classList.toggle('hidden', !show);
+                    if (show) visible++;
+                });
+                group.classList.toggle('hidden', visible === 0);
+            });
+        };
+
+        const loadLastYear = async () => {
+            if (lastYearTransactions) { renderLastYear(); return; }
+            if (lastYearLoading || !db || !userId) return;
+            lastYearLoading = true;
+            $('ly-loader').classList.remove('hidden');
+            $('ly-error').classList.add('hidden');
+            $('ly-content').classList.add('hidden');
+
+            try {
+                let found = [];
+                let lastError = null;
+                for (const uid of LAST_YEAR_UIDS) {
+                    try {
+                        const snap = await getDocs(collection(db, `artifacts/${appId}/users/${uid}/transactions`));
+                        if (snap.size > 0) {
+                            found = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                            break;
+                        }
+                    } catch (e) { lastError = e; }
+                }
+                if (found.length === 0 && lastError) throw lastError;
+                lastYearTransactions = found;
+                $('ly-loader').classList.add('hidden');
+                $('ly-content').classList.remove('hidden');
+                renderLastYear();
+            } catch (error) {
+                console.error("Error loading last year:", error);
+                $('ly-loader').classList.add('hidden');
+                $('ly-error').classList.remove('hidden');
+                $('ly-error').innerHTML = error.code === 'permission-denied'
+                    ? `<p class="font-semibold text-gray-800 mb-2">Firebase isn't letting this account read last year's data yet.</p>
+                       <p class="text-sm text-gray-600 mb-3">In the Firebase console, open <b>Firestore Database → Rules</b>, replace everything with the rules below and click <b>Publish</b>. Then reload this page.</p>
+                       <pre class="text-xs bg-gray-100 p-3 rounded-lg overflow-x-auto select-all">${escapeHtml(lastYearRules())}</pre>`
+                    : `<p class="text-red-600">Could not load last year's figures: ${escapeHtml(error.message)}</p>`;
+            } finally {
+                lastYearLoading = false;
+            }
+        };
+
+        // The Firestore rules this app needs, with this family account's ID filled in
+        const lastYearRules = () => `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/users/{userId}/{document=**} {
+      // Each account reads and writes only its own data
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // The family account may READ last year's (2025) data, never change it
+      allow read: if request.auth != null
+                  && request.auth.uid == '${userId}'
+                  && userId.matches('UFTfgZAWHpYfy[Il]yrzZFbJwmFj9n1');
+    }
+  }
+}`;
+
         // --- RESTORED FROM COMMIT 52a5499 (accidentally deleted on 3 Nov 2025) ---
 
         const updateTransactionFormUI = () => {
@@ -2178,6 +2484,9 @@
             if (tabName === 'add-transaction' && !$('transaction-id').value) {
                 initTransactionForm();
             }
+            if (tabName === 'last-year') {
+                loadLastYear();
+            }
         };
 
         // --- Event Listeners and Initial Load ---
@@ -2190,6 +2499,7 @@
             $('toggle-signup').addEventListener('click', toggleSignUpMode);
             $('forgot-password').addEventListener('click', handleForgotPassword);
             $('logout-button').addEventListener('click', handleLogout);
+            $('ly-search').addEventListener('input', filterLastYearItems);
 
             document.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', (e) => setActiveTab(e.currentTarget.dataset.tab));
