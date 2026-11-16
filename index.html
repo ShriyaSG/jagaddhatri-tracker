@@ -289,9 +289,9 @@
 
                         <!-- File Uploads -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Upload Bill/Receipts (Max 7 files)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Upload Bill/Receipts (Max 7 files, up to 5 MB each)</label>
                             <input type="file" id="bill-upload" multiple accept="image/*, application/pdf" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500">
-                            <p class="text-xs text-gray-500 mt-1">**IMPORTANT:** Max 7 files. Use the input above to **select all files at once, or repeatedly** to accumulate them here. Max 200KB per file.</p>
+                            <p class="text-xs text-gray-500 mt-1">Photos or PDFs, up to 5 MB each, max 7 per transaction. Photos are shrunk automatically so they save faster. You can pick several files at once, or add them one by one.</p>
                             <div id="file-preview-list" class="mt-2 space-y-2">
                             </div>
                         </div>
@@ -576,21 +576,133 @@
             });
         };
 
-        const fileToBase64 = (file) => {
-            return new Promise((resolve, reject) => {
-                const MAX_FILE_SIZE_BYTES = 200 * 1024;
-                if (file.size > MAX_FILE_SIZE_BYTES) {
-                    reject(new Error(`File "${file.name}" is too large (${(file.size / 1024).toFixed(2)} KB). Max allowed size is 200 KB.`));
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = () => resolve({
-                    name: file.name,
-                    data: reader.result 
+        // --- BILL STORAGE ---
+        // Each bill is stored in its own records, split into pieces, so one file can be up to 5 MB
+        // (Firebase allows at most 1 MB per record). The transaction only keeps a small reference:
+        //   bills/{billId}            -> { name, type, size, chunkCount }
+        //   bills/{billId}/chunks/{i} -> { index, data }  (a piece of the file, base64)
+        // Bills saved by older versions (inside the transaction, with a "data" field) still work.
+        const BILL_MAX_BYTES = 5 * 1024 * 1024;
+        const BILL_CHUNK_CHARS = 700000; // ~0.7 MB of text per piece, safely under the 1 MB record limit
+        const IMAGE_MAX_SIDE = 2000;     // photos are resized to at most 2000px on the long side
+
+        const getBillsPath = () => `artifacts/${appId}/users/${userId}/bills`;
+
+        const formatSize = (bytes) => bytes >= 1024 * 1024
+            ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+            : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+        // Shrinks a photo (keeps it readable). Returns the original if it can't be shrunk or isn't smaller.
+        const shrinkImage = async (file) => {
+            if (!file.type || !file.type.startsWith('image/') || file.type === 'image/gif') return file;
+            try {
+                const bitmap = await createImageBitmap(file);
+                const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(bitmap.width, bitmap.height));
+                const width = Math.round(bitmap.width * scale);
+                const height = Math.round(bitmap.height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(bitmap, 0, 0, width, height);
+                if (bitmap.close) bitmap.close();
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                if (!blob || blob.size >= file.size) return file;
+                const name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+                return new File([blob], name, { type: 'image/jpeg' });
+            } catch (error) {
+                console.warn(`Could not shrink ${file.name}, keeping the original.`, error);
+                return file;
+            }
+        };
+
+        const blobToBase64 = (blob) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(blob);
+        });
+
+        // Saves one file and returns the small reference kept in the transaction
+        const uploadBill = async (file) => {
+            const base64 = await blobToBase64(file);
+            const billRef = doc(collection(db, getBillsPath()));
+            const chunkCount = Math.max(1, Math.ceil(base64.length / BILL_CHUNK_CHARS));
+            const chunksCol = collection(db, `${getBillsPath()}/${billRef.id}/chunks`);
+            for (let i = 0; i < chunkCount; i++) {
+                await setDoc(doc(chunksCol, String(i)), {
+                    index: i,
+                    data: base64.slice(i * BILL_CHUNK_CHARS, (i + 1) * BILL_CHUNK_CHARS)
                 });
-                reader.onerror = error => reject(error);
-                reader.readAsDataURL(file);
-            });
+            }
+            const meta = {
+                name: file.name,
+                type: file.type || 'application/octet-stream',
+                size: file.size,
+                chunkCount,
+                createdAt: new Date().toISOString()
+            };
+            await setDoc(billRef, meta); // written last: a bill record only exists once all its pieces do
+            return { billId: billRef.id, name: meta.name, type: meta.type, size: meta.size, chunkCount };
+        };
+
+        // Deletes stored bills and all their pieces (best effort; never blocks the user)
+        const deleteBills = async (billIds) => {
+            for (const billId of billIds) {
+                try {
+                    const chunks = await getDocs(collection(db, `${getBillsPath()}/${billId}/chunks`));
+                    for (const chunk of chunks.docs) {
+                        await deleteDoc(doc(collection(db, `${getBillsPath()}/${billId}/chunks`), chunk.id));
+                    }
+                    await deleteDoc(doc(collection(db, getBillsPath()), billId));
+                } catch (error) {
+                    console.warn(`Could not delete bill ${billId}:`, error);
+                }
+            }
+        };
+
+        const saveBlob = (blob, name) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = name;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+        };
+
+        // Downloads a bill: old-style (stored inside the transaction) or new-style (stored in pieces)
+        const downloadBill = async (file, button) => {
+            if (file.data) {
+                const a = document.createElement('a');
+                a.href = file.data;
+                a.download = file.name;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                return;
+            }
+            const originalHtml = button ? button.innerHTML : '';
+            try {
+                if (button) { button.disabled = true; button.textContent = 'Loading...'; }
+                const snap = await getDocs(collection(db, `${getBillsPath()}/${file.billId}/chunks`));
+                const pieces = snap.docs.map(d => d.data()).sort((x, y) => x.index - y.index);
+                if (pieces.length === 0 || (file.chunkCount && pieces.length !== file.chunkCount)) {
+                    throw new Error('This bill is incomplete or missing.');
+                }
+                const binary = atob(pieces.map(p => p.data).join(''));
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                saveBlob(new Blob([bytes], { type: file.type || 'application/octet-stream' }), file.name);
+            } catch (error) {
+                console.error('Bill download error:', error);
+                await showModal('Bill Error', `Could not open "${file.name}": ${error.message}`, false);
+            } finally {
+                if (button) { button.disabled = false; button.innerHTML = originalHtml; lucide.createIcons(); }
+            }
         };
 
         const getDateTime = (dateStr, timeStr) => {
@@ -1230,7 +1342,7 @@
             $('transaction-button-text').textContent = 'Save Changes';
             $('transaction-id').value = tx.id;
 
-            pendingFiles = tx.files || [];
+            pendingFiles = (tx.files || []).map(f => ({ ...f }));
             
             const txSplits = (tx.splits && tx.splits.length > 0)
                  ? tx.splits
@@ -1356,18 +1468,35 @@
             }
 
             let newFiles = [];
+            const uploadedBillIds = []; // removed again if the save fails
             try {
-                const filePromises = filesToUpload.map(fileToBase64);
-                newFiles = await Promise.all(filePromises);
+                const prepared = [];
+                for (const file of filesToUpload) {
+                    buttonText.textContent = 'Preparing bills...';
+                    const ready = await shrinkImage(file);
+                    if (ready.size > BILL_MAX_BYTES) {
+                        throw new Error(`"${file.name}" is ${formatSize(ready.size)}. The limit is 5 MB per file.`);
+                    }
+                    prepared.push(ready);
+                }
+                for (let i = 0; i < prepared.length; i++) {
+                    buttonText.textContent = `Uploading bill ${i + 1} of ${prepared.length}...`;
+                    const billRefInfo = await uploadBill(prepared[i]);
+                    uploadedBillIds.push(billRefInfo.billId);
+                    newFiles.push(billRefInfo);
+                }
+                buttonText.textContent = 'Saving...';
             } catch (error) {
-                await showModal("File Error", `One or more files exceeded the size limit (Max 200KB per file): ${error.message}`, false);
+                console.error("Bill upload error:", error);
+                await deleteBills(uploadedBillIds);
+                await showModal("File Error", `The bills could not be saved, so nothing was recorded. ${error.message}`, false);
                 buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
                 spinner.classList.add('hidden');
                 button.disabled = false;
                 return;
             }
 
-            const finalFiles = filesToKeep.concat(newFiles);
+            const finalFiles = filesToKeep.map(({ remove, ...f }) => f).concat(newFiles);
             let isClosedStatus = type === 'INFLOW' || status === 'FULL'; 
 
             const transactionData = {
@@ -1457,6 +1586,7 @@
 
                 } catch (error) {
                     console.error("Firestore Transaction Error:", error);
+                    await deleteBills(uploadedBillIds);
                     await showModal("Transaction Failed", `Due clearance could not be processed: ${error.message}`, false);
                     buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
                     spinner.classList.add('hidden');
@@ -1475,6 +1605,7 @@
                     await showModal("Success!", `Transaction recorded successfully. ID: ${transactionRef.id.substring(0, 8)}...`, false);
                 } catch (error) {
                     console.error("Firestore Save Error:", error);
+                    await deleteBills(uploadedBillIds);
                     await showModal("Save Error", `Failed to record transaction: ${error.message}`, false);
                     buttonText.textContent = isModification ? 'Save Changes' : 'Record Transaction';
                     spinner.classList.add('hidden');
@@ -1482,6 +1613,9 @@
                     return;
                 }
             }
+
+            // Bills removed while editing are deleted only now that the save succeeded
+            await deleteBills(pendingFiles.filter(f => f.remove && f.billId).map(f => f.billId));
 
             // 5. Reset Form/UI
             $('transaction-form').reset();
@@ -1548,7 +1682,14 @@
                 let fileButtons = '';
                 (tx.files || []).forEach((file, index) => {
                     const isBase64 = file.data && file.data.startsWith('data:');
-                    if (isBase64) {
+                    if (file.billId) {
+                        fileButtons += `
+                            <button type="button" data-tx-id="${tx.id}" data-file-index="${index}"
+                                class="bill-btn text-xs inline-flex items-center text-blue-600 hover:text-blue-800 border border-blue-300 rounded-full px-2 py-1 mb-1 transition duration-150">
+                                <i data-lucide="download" class="w-3 h-3 mr-1"></i> ${escapeHtml(file.name)}${file.size ? ` <span class="text-gray-400 ml-1">(${formatSize(file.size)})</span>` : ''}
+                            </button>
+                        `;
+                    } else if (isBase64) {
                         fileButtons += `
                             <a href="${file.data}" download="${file.name}"
                                 class="text-xs inline-flex items-center text-blue-600 hover:text-blue-800 border border-blue-300 rounded-full px-2 py-1 transition duration-150">
@@ -1618,6 +1759,12 @@
                     populateFormForModification(tx);
                 }
             }));
+            document.querySelectorAll('.bill-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const button = e.currentTarget;
+                const tx = allTransactions.find(t => t.id === button.dataset.txId);
+                const file = tx && (tx.files || [])[parseInt(button.dataset.fileIndex)];
+                if (file) downloadBill(file, button);
+            }));
             document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', async (e) => {
                  const txId = e.currentTarget.dataset.id;
                  const tx = allTransactions.find(t => t.id === txId);
@@ -1656,6 +1803,7 @@
                     }
                     t.delete(txRef);
                 });
+                await deleteBills((txToDelete.files || []).filter(f => f.billId).map(f => f.billId));
                 await showModal("Deleted!", "The transaction has been successfully removed.", false);
              } catch (error) {
                 console.error("Deletion Error:", error);
@@ -2069,21 +2217,28 @@ service cloud.firestore {
 
         const handleNewFileSelection = () => {
             const fileInput = $('bill-upload');
+            const tooBig = [];
             // Add new files (which are File objects) to the pending list
             Array.from(fileInput.files).forEach(file => {
                 // Check against existing (Base64 objects) and pending (File objects) to avoid duplicates
-                const isDuplicate = pendingFiles.some(f => (f instanceof File && f.name === file.name && f.size === file.size) || (f.name === file.name && f.data));
-                if (!isDuplicate) {
+                const isDuplicate = pendingFiles.some(f => (f instanceof File && f.name === file.name && f.size === file.size) || (!(f instanceof File) && !f.remove && f.name === file.name));
+                const isPhoto = file.type && file.type.startsWith('image/') && file.type !== 'image/gif';
+                if (!isPhoto && file.size > BILL_MAX_BYTES) {
+                    tooBig.push(`${file.name} (${formatSize(file.size)})`);
+                } else if (!isDuplicate) {
                     pendingFiles.push(file);
                 }
             });
             renderFilePreviewList();
             fileInput.value = null; // Clear the input value so the change event fires again
+            if (tooBig.length > 0) {
+                showModal("File Too Large", `These files are over the 5 MB limit and were not added: ${tooBig.join(', ')}`, false);
+            }
         };
 
         const createExistingFilePreview = (fileName, index) => `
             <div id="file-existing-${index}" data-name="${fileName}" data-type="existing" class="flex justify-between items-center p-2 bg-gray-100 rounded-lg text-sm">
-                <span class="truncate pr-4">${fileName} (Existing)</span>
+                <span class="truncate pr-4">${escapeHtml(fileName)} (Saved)</span>
                 <button type="button" data-file-name="${fileName}" class="remove-existing-file text-red-500 hover:text-red-700" title="Remove Existing File">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
@@ -2092,7 +2247,7 @@ service cloud.firestore {
         
         const createPendingFilePreview = (fileName, index) => `
             <div id="file-pending-${index}" data-name="${fileName}" data-type="pending" class="flex justify-between items-center p-2 bg-yellow-50 rounded-lg text-sm border-yellow-300 border">
-                <span class="truncate pr-4">${fileName} (New - Pending Save)</span>
+                <span class="truncate pr-4">${escapeHtml(fileName)} (New, saves with the transaction)</span>
                 <button type="button" data-file-name="${fileName}" class="remove-pending-file text-red-500 hover:text-red-700" title="Remove Pending File">
                     <i data-lucide="x" class="w-4 h-4"></i>
                 </button>
@@ -2146,7 +2301,8 @@ service cloud.firestore {
             });
             
             newFiles.forEach((file, index) => {
-                previewList.innerHTML += createPendingFilePreview(file.name, index);
+                previewList.innerHTML += createPendingFilePreview(file.name, index)
+                    .replace('(New, saves with the transaction)', `(${formatSize(file.size)}, new)`);
             });
 
             // Re-attach listeners for removals
